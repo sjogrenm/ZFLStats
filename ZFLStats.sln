@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35013.160
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZFLStats", "ZFLStats\ZFLStats.csproj", "{F15D4E08-B10E-4B31-A84E-65B2F26FEFD1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BloodBowl3", "BloodBowl3\BloodBowl3.csproj", "{A5A4F19F-6B1D-4FA9-9780-946A2A5E7D77}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{95A47A88-8E74-4A33-A7D2-85C50B2591EC}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F15D4E08-B10E-4B31-A84E-65B2F26FEFD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F15D4E08-B10E-4B31-A84E-65B2F26FEFD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F15D4E08-B10E-4B31-A84E-65B2F26FEFD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F15D4E08-B10E-4B31-A84E-65B2F26FEFD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5A4F19F-6B1D-4FA9-9780-946A2A5E7D77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5A4F19F-6B1D-4FA9-9780-946A2A5E7D77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5A4F19F-6B1D-4FA9-9780-946A2A5E7D77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5A4F19F-6B1D-4FA9-9780-946A2A5E7D77}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C735C6C2-D564-425D-80E4-92BF17317414}
+	EndGlobalSection
+EndGlobal
