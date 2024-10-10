@@ -7,12 +7,20 @@ using BloodBowl3;
 
 public class Program
 {
-    private static void Run(FileSystemInfo fileOrDir, string? coachFilter, string? teamFilter, FileInfo? csvFile)
+    private static void Run(FileSystemInfo fileOrDir, string? coachFilter, string? teamFilter, FileInfo? csvFile, bool autoCsv, bool silent)
     {
-        using var csv = csvFile?.CreateText();
+        var csv = csvFile?.CreateText();
 
         foreach (var replay in ReplayParser.GetReplays(fileOrDir, coachFilter, teamFilter))
         {
+            if (replay == null) continue;
+
+            if (autoCsv){
+                csv?.Dispose();
+                var filename = replay.File.FullName.Replace("bbr", "csv");
+                csv = new FileInfo(filename).CreateText();
+            }
+
             var stats = new Dictionary<int, ZFLPlayerStats>();
 
             ZFLPlayerStats GetStatsFor(int playerId)
@@ -331,30 +339,34 @@ public class Program
                 }
             }
 
-            int fanAttendance = replay.ReplayRoot.SelectSingleNode("EndGame/RulesEventGameFinished/MatchResult/FanAttendance").InnerText.ParseInt();
+            int fanAttendanceHome = replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/HomeRoll/Dice/Die/Value").InnerText.ParseInt();
+            int fanAttendanceAway = replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/AwayRoll/Dice/Die/Value").InnerText.ParseInt();
 
             var properties = typeof(ZFLPlayerStats).GetProperties();
 
             csv?.WriteLine($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
-            csv?.WriteLine($" Fan attendance: {fanAttendance}");
+            csv?.WriteLine($" Fan attendance home: {fanAttendanceHome}");
+            csv?.WriteLine($" Fan attendance away: {fanAttendanceAway}");
             csv?.WriteLine($"Player;{string.Join(';', properties.Select(p => p.Name))}");
 
-            Console.WriteLine($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
-            Console.WriteLine($" Fan attendance: {fanAttendance}");
+            if (!silent) Console.WriteLine($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
+            if (!silent) Console.WriteLine($" Fan attendance: {fanAttendanceHome} / {fanAttendanceAway}");
             foreach (var playerId in replay.HomeTeam.Players.Keys.Concat(replay.VisitingTeam.Players.Keys))
             {
                 var playerStats = GetStatsFor(playerId);
-                Console.WriteLine($"  {replay.GetPlayer(playerId).Name} (id={playerId}):");
+                if (!silent) Console.WriteLine($"  {replay.GetPlayer(playerId).Name} (id={playerId}):");
                 playerStats.PrintToConsole(4);
                 if (playerStats.ExpectedSPP != playerStats.SppEarned)
                 {
-                    Console.WriteLine($"      !!! Expected {playerStats.ExpectedSPP}spp but found {playerStats.SppEarned}. Bug or prayer to Nuffle?");
+                    if (!silent) Console.WriteLine($"      !!! Expected {playerStats.ExpectedSPP}spp but found {playerStats.SppEarned}. Bug or prayer to Nuffle?");
                 }
 
                 csv?.WriteLine($"{replay.GetPlayer(playerId).Name};{string.Join(';', properties.Select(p => p.GetValue(playerStats)))}");
             }
+            csv?.Flush();
         }
 
+        csv?.Dispose();
         if (!Console.IsOutputRedirected && !Debugger.IsAttached)
         {
             Console.Error.Write("Press Enter to exit...");
@@ -366,18 +378,23 @@ public class Program
     public static int Main(string[] args)
     {
         var fileOrDirArg = new Argument<FileSystemInfo>("file or directory").ExistingOnly();
-        var coachOpt = new Option<string>(new[] { "--coach", "-c" });
-        var teamOpt = new Option<string>(new[] { "--team", "-t" });
+        var coachOpt = new Option<string>(["--coach", "-c"]);
+        var teamOpt = new Option<string>(["--team", "-t"]);
         var csvOpt = new Option<FileInfo>("--csv");
+        var autoCsvOpt = new Option<bool>("--auto-csv");
+        var silentOpt = new Option<bool>("--silent");
+
         var rootCommand = new RootCommand
         {
             fileOrDirArg,
             coachOpt,
             teamOpt,
             csvOpt,
+            autoCsvOpt,
+            silentOpt
         };
 
-        rootCommand.SetHandler(Run, fileOrDirArg, coachOpt, teamOpt, csvOpt);
+        rootCommand.SetHandler(Run, fileOrDirArg, coachOpt, teamOpt, csvOpt, autoCsvOpt, silentOpt);
 
         return rootCommand.Invoke(args);
     }
