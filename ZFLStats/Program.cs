@@ -367,12 +367,6 @@ public class Program
         }
 
         csv?.Dispose();
-        if (!Console.IsOutputRedirected && !Debugger.IsAttached)
-        {
-            Console.Error.Write("Press Enter to exit...");
-            Console.Error.Flush();
-            Console.ReadLine();
-        }
     }
 
     public static int Main(string[] args)
