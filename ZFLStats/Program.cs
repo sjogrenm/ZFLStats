@@ -9,17 +9,19 @@ public class Program
 {
     private static void Run(FileSystemInfo fileOrDir, string? coachFilter, string? teamFilter, FileInfo? csvFile, bool autoCsv, bool silent)
     {
-        var csv = csvFile?.CreateText();
+        void WriteToConsole(string text)
+        {
+            if (!silent)
+            {
+                Console.WriteLine(text);
+            }
+        }
+
+        using var csv = csvFile?.CreateText();
 
         foreach (var replay in ReplayParser.GetReplays(fileOrDir, coachFilter, teamFilter))
         {
-            if (replay == null) continue;
-
-            if (autoCsv){
-                csv?.Dispose();
-                var filename = replay.File.FullName.Replace("bbr", "csv");
-                csv = new FileInfo(filename).CreateText();
-            }
+            using var csv2 = autoCsv ? File.CreateText(Path.ChangeExtension(replay.File.FullName, ".csv")) : null;
 
             var stats = new Dictionary<int, ZFLPlayerStats>();
 
@@ -33,6 +35,12 @@ public class Program
                 }
 
                 return playerStats;
+            }
+
+            void WriteToCsv(string text)
+            {
+                csv?.WriteLine(text);
+                csv2?.WriteLine(text);
             }
 
             int lastBlockingPlayerId = -1;
@@ -344,29 +352,26 @@ public class Program
 
             var properties = typeof(ZFLPlayerStats).GetProperties();
 
-            csv?.WriteLine($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
-            csv?.WriteLine($" Fan attendance home: {fanAttendanceHome}");
-            csv?.WriteLine($" Fan attendance away: {fanAttendanceAway}");
-            csv?.WriteLine($"Player;{string.Join(';', properties.Select(p => p.Name))}");
+            WriteToCsv($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
+            WriteToCsv($" Fan attendance home: {fanAttendanceHome}");
+            WriteToCsv($" Fan attendance away: {fanAttendanceAway}");
+            WriteToCsv($"Player;{string.Join(';', properties.Select(p => p.Name))}");
 
-            if (!silent) Console.WriteLine($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
-            if (!silent) Console.WriteLine($" Fan attendance: {fanAttendanceHome} / {fanAttendanceAway}");
+            WriteToConsole($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
+            WriteToConsole($" Fan attendance: {fanAttendanceHome} / {fanAttendanceAway}");
             foreach (var playerId in replay.HomeTeam.Players.Keys.Concat(replay.VisitingTeam.Players.Keys))
             {
                 var playerStats = GetStatsFor(playerId);
-                if (!silent) Console.WriteLine($"  {replay.GetPlayer(playerId).Name} (id={playerId}):");
-                playerStats.PrintToConsole(4);
+                WriteToConsole($"  {replay.GetPlayer(playerId).Name} (id={playerId}):");
+                if (!silent) playerStats.PrintToConsole(4);
                 if (playerStats.ExpectedSPP != playerStats.SppEarned)
                 {
-                    if (!silent) Console.WriteLine($"      !!! Expected {playerStats.ExpectedSPP}spp but found {playerStats.SppEarned}. Bug or prayer to Nuffle?");
+                    WriteToConsole($"      !!! Expected {playerStats.ExpectedSPP}spp but found {playerStats.SppEarned}. Bug or prayer to Nuffle?");
                 }
 
-                csv?.WriteLine($"{replay.GetPlayer(playerId).Name};{string.Join(';', properties.Select(p => p.GetValue(playerStats)))}");
+                WriteToCsv($"{replay.GetPlayer(playerId).Name};{string.Join(';', properties.Select(p => p.GetValue(playerStats)))}");
             }
-            csv?.Flush();
         }
-
-        csv?.Dispose();
     }
 
     public static int Main(string[] args)
