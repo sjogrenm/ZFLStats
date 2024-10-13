@@ -126,7 +126,7 @@ public static class ReplayParser
 
     private static Player GetPlayer(int team, XmlElement playerData)
     {
-        return new Player(team, playerData["Id"].InnerText.ParseInt(), playerData["Name"].InnerText.FromBase64());
+        return new Player(team, playerData["Id"].InnerText.ParseInt(), playerData["Name"].InnerText.FromBase64(), playerData["LobbyId"]?.InnerText.FromBase64());
     }
 
     private static IEnumerable<string> GetTeamNames(XmlElement doc)

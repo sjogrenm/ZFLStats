@@ -30,7 +30,8 @@ public class Program
                 Debug.Assert(playerId >= 0);
                 if (!stats.TryGetValue(playerId, out var playerStats))
                 {
-                    playerStats = new ZFLPlayerStats();
+                    var p = replay.GetPlayer(playerId);
+                    playerStats = new ZFLPlayerStats(p.Name, p.LobbyId);
                     stats.Add(playerId, playerStats);
                 }
 
@@ -374,7 +375,7 @@ public class Program
             WriteToCsv($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
             WriteToCsv($" Fan attendance home: {fanAttendanceHome}");
             WriteToCsv($" Fan attendance away: {fanAttendanceAway}");
-            WriteToCsv($"Player;{string.Join(';', properties.Select(p => p.Name))}");
+            WriteToCsv(string.Join(';', properties.Select(p => p.Name)));
 
             WriteToConsole($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
             WriteToConsole($" Fan attendance: {fanAttendanceHome} / {fanAttendanceAway}");
@@ -388,7 +389,7 @@ public class Program
                     WriteToConsole($"      !!! Expected {playerStats.ExpectedSPP}spp but found {playerStats.SppEarned}. Bug or prayer to Nuffle?");
                 }
 
-                WriteToCsv($"{replay.GetPlayer(playerId).Name};{string.Join(';', properties.Select(p => p.GetValue(playerStats)))}");
+                WriteToCsv(string.Join(';', properties.Select(p => p.GetValue(playerStats))));
             }
         }
     }

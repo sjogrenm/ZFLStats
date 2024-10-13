@@ -1,7 +1,11 @@
 ﻿namespace ZFLStats;
 
-public class ZFLPlayerStats
+public class ZFLPlayerStats(string name, string? lobbyId)
 {
+    public string Name => name;
+
+    public string? LobbyId => lobbyId;
+
     public int TouchdownsScored { get; set; }
 
     public int CasInflicted { get; set; }
