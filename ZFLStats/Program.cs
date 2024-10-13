@@ -2,12 +2,13 @@
 
 using System.CommandLine;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Xml;
 using BloodBowl3;
 
 public class Program
 {
-    private static void Run(FileSystemInfo fileOrDir, string? coachFilter, string? teamFilter, FileInfo? csvFile, bool autoCsv, bool silent)
+    private static void Run(FileSystemInfo fileOrDir, string? coachFilter, string? teamFilter, FileInfo? outputFile, bool autoOut, bool silent, string? format)
     {
         void WriteToConsole(string text)
         {
@@ -17,11 +18,13 @@ public class Program
             }
         }
 
-        using var csv = csvFile?.CreateText();
+        format ??= "csv";
+
+        using var outFile = outputFile?.CreateText();
 
         foreach (var replay in ReplayParser.GetReplays(fileOrDir, coachFilter, teamFilter))
         {
-            using var csv2 = autoCsv ? File.CreateText(Path.ChangeExtension(replay.File.FullName, ".csv")) : null;
+            using var autoOutFile = autoOut ? File.CreateText(Path.ChangeExtension(replay.File.FullName, format)) : null;
 
             var stats = new Dictionary<int, ZFLPlayerStats>();
 
@@ -40,8 +43,19 @@ public class Program
 
             void WriteToCsv(string text)
             {
-                csv?.WriteLine(text);
-                csv2?.WriteLine(text);
+                if (format != "csv")
+                    return;
+                outFile?.WriteLine(text);
+                autoOutFile?.WriteLine(text);
+            }
+
+            void WriteJson(object value)
+            {
+                if (format != "json")
+                    return;
+                var text = JsonSerializer.Serialize(value);
+                outFile?.WriteLine(text);
+                autoOutFile?.WriteLine(text);
             }
 
             int lastBlockingPlayerId = -1;
@@ -391,6 +405,23 @@ public class Program
 
                 WriteToCsv(string.Join(';', properties.Select(p => p.GetValue(playerStats))));
             }
+
+            WriteJson(new
+            {
+                id = replay.File.Name.Replace(".bbr", string.Empty),
+                home = new
+                {
+                    name = replay.HomeTeam.Name,
+                    fans = fanAttendanceHome,
+                    players = stats.Where(kvp => replay.HomeTeam.Players.ContainsKey(kvp.Key)).OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value)
+                },
+                away = new
+                {
+                    name = replay.VisitingTeam.Name,
+                    fans = fanAttendanceAway,
+                    players = stats.Where(kvp => replay.VisitingTeam.Players.ContainsKey(kvp.Key)).OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value)
+                }
+            });
         }
     }
 
@@ -399,21 +430,23 @@ public class Program
         var fileOrDirArg = new Argument<FileSystemInfo>("file or directory").ExistingOnly();
         var coachOpt = new Option<string>(["--coach", "-c"]);
         var teamOpt = new Option<string>(["--team", "-t"]);
-        var csvOpt = new Option<FileInfo>("--csv");
-        var autoCsvOpt = new Option<bool>("--auto-csv");
+        var outputOpt = new Option<FileInfo>(["--output", "-o"]);
+        var autoOpt = new Option<bool>("--auto");
         var silentOpt = new Option<bool>("--silent");
+        var formatOpt = new Option<string>(["--format", "-f"]).FromAmong("csv", "json");
 
         var rootCommand = new RootCommand
         {
             fileOrDirArg,
             coachOpt,
             teamOpt,
-            csvOpt,
-            autoCsvOpt,
-            silentOpt
+            outputOpt,
+            autoOpt,
+            silentOpt,
+            formatOpt,
         };
 
-        rootCommand.SetHandler(Run, fileOrDirArg, coachOpt, teamOpt, csvOpt, autoCsvOpt, silentOpt);
+        rootCommand.SetHandler(Run, fileOrDirArg, coachOpt, teamOpt, outputOpt, autoOpt, silentOpt, formatOpt);
 
         return rootCommand.Invoke(args);
     }
