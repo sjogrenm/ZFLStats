@@ -3,20 +3,13 @@
 namespace BloodBowl3;
 
 [DebuggerDisplay("Player({Id}, {Name})")]
-public class Player : IComparable<Player>
+public class Player(int team, int id, string name) : IComparable<Player>
 {
-    public Player(int team, int id, string name)
-    {
-        this.Team = team;
-        this.Id = id;
-        this.Name = name;
-    }
+    public int Team => team;
 
-    public int Team { get; }
+    public int Id => id;
 
-    public int Id { get; }
-
-    public string Name { get; }
+    public string Name => name;
 
     public int FirstXP = -1;
 

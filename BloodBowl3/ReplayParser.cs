@@ -83,12 +83,7 @@ public static class ReplayParser
 
     private static Replay GetReplayImpl(FileInfo file, XmlElement root)
     {
-        var replay = new Replay
-        {
-            File = file,
-            ClientVersion = root.SelectSingleNode("ClientVersion").InnerText,
-            ReplayRoot = root
-        };
+        var replay = new Replay(file, root.SelectSingleNode("ClientVersion").InnerText, root);
 
         if (root.SelectSingleNode("NotificationGameJoined/GameInfos") is XmlElement gameInfos)
         {
@@ -104,8 +99,8 @@ public static class ReplayParser
                 replay.VisitingCoach = coaches[1].InnerText.FromBase64();
 
                 var teamNameNodes = gamersInfos.SelectNodes("GamerInfos/Roster/Name").Cast<XmlElement>().ToArray();
-                replay.HomeTeam = new Team { Coach = replay.HomeCoach, Name = teamNameNodes[0].InnerText.FromBase64() };
-                replay.VisitingTeam = new Team { Coach = replay.VisitingCoach, Name = teamNameNodes[1].InnerText.FromBase64() };
+                replay.HomeTeam = new Team(teamNameNodes[0].InnerText.FromBase64(), replay.HomeCoach);
+                replay.VisitingTeam = new Team(teamNameNodes[1].InnerText.FromBase64(), replay.VisitingCoach);
             }
         }
 

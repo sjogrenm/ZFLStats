@@ -2,11 +2,11 @@
 
 namespace BloodBowl3;
 
-public class Replay
+public class Replay(FileInfo file, string clientVersion, XmlElement root)
 {
-    public FileInfo File { get; set; }
+    public FileInfo File => file;
 
-    public string ClientVersion { get; set; }
+    public string ClientVersion => clientVersion;
 
     public string HomeCoach { get; set; }
 
@@ -18,7 +18,7 @@ public class Replay
 
     public string CompetitionName { get; set; }
 
-    public XmlElement ReplayRoot { get; set; }
+    public XmlElement ReplayRoot => root;
 
     public Player GetPlayer(int id)
     {
