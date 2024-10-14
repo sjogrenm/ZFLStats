@@ -254,6 +254,8 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         var attackerId = result.DocumentElement["AttackerId"]!.InnerText.ParseInt();
                                         var defenderId = result.DocumentElement["DefenderId"]!.InnerText.ParseInt();
                                         var outcome = (BlockOutcome)result.DocumentElement["Outcome"]!.InnerText.ParseInt();
+                                        this.GetStatsFor(attackerId).BlocksInflicted++;
+                                        this.GetStatsFor(defenderId).BlocksSustained++;
                                         lastBlockingPlayerId = attackerId;
                                         lastDefendingPlayerId = defenderId;
                                         lastBlockOutcome = outcome;
@@ -300,6 +302,18 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         var sentOffId = result.DocumentElement["PlayerId"]!.InnerText.ParseInt();
                                         this.GetStatsFor(sentOffId).Expulsions += 1;
                                         Debug.WriteLine($">> Sending {sentOffId} off the pitch");
+                                    }
+                                    break;
+                                case "ResultUseAction":
+                                    {
+                                        var action = (SequenceType)result.DocumentElement["Action"]!.InnerText.ParseInt();
+                                        switch (action)
+                                        {
+                                            case SequenceType.Blitz:
+                                                this.GetStatsFor(playerId).Blitzes++;
+                                                break;
+                                        }
+                                        Debug.WriteLine($">> Use action {action}");
                                     }
                                     break;
                                 default:
