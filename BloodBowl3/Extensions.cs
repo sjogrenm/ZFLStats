@@ -15,4 +15,12 @@ public static class Extensions
     {
         return encoding.GetString(Convert.FromBase64String(base64));
     }
+
+    public static void ForEach<T>(this IEnumerable<T> values, Action<T> action)
+    {
+        foreach (var item in values)
+        {
+            action(item);
+        }
+    }
 }

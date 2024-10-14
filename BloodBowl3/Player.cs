@@ -13,9 +13,9 @@ public class Player(int team, int id, string name, string? lobbyId) : IComparabl
 
     public string? LobbyId => lobbyId;
 
-    public int FirstXP = -1;
+    public int SppGained = 0;
 
-    public int LastXP = -1;
+    public bool Mvp;
 
     public int CompareTo(Player other)
     {

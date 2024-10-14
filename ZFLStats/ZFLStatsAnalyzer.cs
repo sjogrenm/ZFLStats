@@ -26,6 +26,13 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
     public void Analyze()
     {
+        foreach (var p in replay.HomeTeam.Players.Values.Concat(replay.VisitingTeam.Players.Values))
+        {
+            var stats = this.GetStatsFor(p.Id);
+            stats.SppEarned = p.SppGained;
+            stats.Mvp = p.Mvp;
+        }
+
         int lastBlockingPlayerId = -1;
         int lastDefendingPlayerId = -1;
         BlockOutcome? lastBlockOutcome = null;
@@ -331,19 +338,6 @@ internal class ZFLStatsAnalyzer(Replay replay)
                     ballCarrier = -1;
                     Debug.WriteLine("* Ball is loose!");
                 }
-            }
-        }
-
-        foreach (var playerData in replay.ReplayRoot.SelectNodes("//PlayerState")!.Cast<XmlElement>())
-        {
-            if (playerData["ExperienceGained"]?.InnerText.ParseInt() is { } xp and > 0)
-            {
-                var id = playerData["Id"]!.InnerText.ParseInt();
-                var s = this.GetStatsFor(id);
-                if (s.SppEarned + 4 == xp)
-                    s.Mvp = true;
-                s.SppEarned = xp;
-                //                    Console.WriteLine($"Player {id} ({replay.GetPlayer(id).Name}) gained {xp} xp");
             }
         }
     }
