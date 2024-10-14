@@ -37,12 +37,12 @@ public class Program
             var properties = typeof(ZFLPlayerStats).GetProperties();
 
             WriteToCsv($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
-            WriteToCsv($" Fan attendance home: {analyzer.HomeFanAttendance}");
-            WriteToCsv($" Fan attendance away: {analyzer.VisitingFanAttendance}");
+            WriteToCsv($" Fan attendance home: {analyzer.HomeFanAttendanceRoll}");
+            WriteToCsv($" Fan attendance away: {analyzer.VisitingFanAttendanceRoll}");
             WriteToCsv(string.Join(';', properties.Select(p => p.Name)));
 
             Console.WriteLine($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
-            Console.WriteLine($" Fan attendance: {analyzer.HomeFanAttendance} / {analyzer.VisitingFanAttendance}");
+            Console.WriteLine($" Fan attendance: {analyzer.HomeFanAttendanceRoll} / {analyzer.VisitingFanAttendanceRoll}");
             foreach (var playerStats in analyzer.HomeTeamStats.Concat(analyzer.VisitingTeamStats))
             {
                 Console.WriteLine($"  {playerStats.Name} (id={playerStats.Id}):");
@@ -61,13 +61,13 @@ public class Program
                 home = new
                 {
                     name = replay.HomeTeam.Name,
-                    fans = analyzer.HomeFanAttendance,
+                    fans = analyzer.HomeFanAttendanceRoll,
                     players = analyzer.HomeTeamStats
                 },
                 away = new
                 {
                     name = replay.VisitingTeam.Name,
-                    fans = analyzer.VisitingFanAttendance,
+                    fans = analyzer.VisitingFanAttendanceRoll,
                     players = analyzer.VisitingTeamStats
                 }
             });

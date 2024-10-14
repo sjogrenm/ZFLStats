@@ -15,9 +15,10 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
     public IEnumerable<ZFLPlayerStats> VisitingTeamStats => replay.VisitingTeam.Players.Keys.OrderBy(id => id).Select(this.GetStatsFor);
 
-    public int HomeFanAttendance => replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/HomeRoll/Dice/Die/Value")!.InnerText.ParseInt();
+    // Note that the in-game dedicated fans are irrelevant for ZFL, so we only care about the dice roll
+    public int HomeFanAttendanceRoll => replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/HomeRoll/Dice/Die/Value")!.InnerText.ParseInt();
 
-    public int VisitingFanAttendance => replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/AwayRoll/Dice/Die/Value")!.InnerText.ParseInt();
+    public int VisitingFanAttendanceRoll => replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/AwayRoll/Dice/Die/Value")!.InnerText.ParseInt();
 
     public Task AnalyzeAsync()
     {
