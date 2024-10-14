@@ -10,7 +10,7 @@ public static class ReplayParser
 {
     public static async IAsyncEnumerable<Replay> GetReplays(FileSystemInfo fileOrDir, string? coachFilter = null, string? teamFilter = null)
     {
-        var replayTasks = new HashSet<Task<Replay>>();
+        var replayTasks = new HashSet<Task<Replay?>>();
 
         if (fileOrDir is DirectoryInfo dir)
         {
@@ -27,35 +27,43 @@ public static class ReplayParser
 
             foreach (var path in dir.EnumerateFiles("*.bbr"))
             {
-                var doc = LoadDocument(path);
-                var coaches = GetCoachNames(doc.DocumentElement!).ToArray();
-                var teamNames = GetTeamNames(doc.DocumentElement!).ToArray();
-                var teamMatches = teamPattern == null || teamNames.Any(teamPattern.IsMatch);
-                var coachMatches = coachPattern == null || coaches.Any(coachPattern.IsMatch);
-                if (teamMatches && coachMatches)
+                var task = LoadDocumentAsync(path).ContinueWith(t =>
                 {
-                    replayTasks.Add(GetReplayAsync(path, doc.DocumentElement!));
-                }
+                    var doc = t.Result;
+                    if (coachPattern != null && !GetCoachNames(doc.DocumentElement!).Any(coachPattern.IsMatch))
+                        return null;
+                    if (teamPattern != null && !GetTeamNames(doc.DocumentElement!).Any(teamPattern.IsMatch))
+                        return null;
+                    return GetReplay(path, doc.DocumentElement!);
+                });
+
+                replayTasks.Add(task);
             }
         }
         else
         {
-            var doc = LoadDocument((FileInfo)fileOrDir);
-            replayTasks.Add(GetReplayAsync((FileInfo)fileOrDir, doc.DocumentElement!));
+            var task = LoadDocumentAsync((FileInfo)fileOrDir).ContinueWith(Replay? (t) => GetReplay((FileInfo)fileOrDir, t.Result.DocumentElement!));
+            replayTasks.Add(task);
         }
 
         while (replayTasks.Count > 0)
         {
             var task = await Task.WhenAny(replayTasks);
             replayTasks.Remove(task);
-            yield return await task;
+            var replay = await task;
+            if (replay != null)
+            {
+                yield return replay;
+            }
         }
     }
 
     public static Task<Replay> GetReplayAsync(FileInfo file, XmlElement root)
     {
-        return Task.Run(() => GetReplayImpl(file, root));
+        return Task.Run(() => GetReplay(file, root));
     }
+
+    private static Task<XmlDocument> LoadDocumentAsync(FileInfo path) => Task.Run(() => LoadDocument(path));
 
     private static XmlDocument LoadDocument(FileInfo path)
     {
@@ -85,7 +93,7 @@ public static class ReplayParser
         return doc;
     }
 
-    private static Replay GetReplayImpl(FileInfo file, XmlElement root)
+    public static Replay GetReplay(FileInfo file, XmlElement root)
     {
         var replay = new Replay(file, root.SelectSingleNode("ClientVersion").InnerText, root);
 
