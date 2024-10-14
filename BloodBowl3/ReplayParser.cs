@@ -8,13 +8,13 @@ namespace BloodBowl3;
 
 public static class ReplayParser
 {
-    public static IList<Replay> GetReplays(FileSystemInfo fileOrDir, string? coachFilter = null, string? teamFilter = null)
+    public static async IAsyncEnumerable<Replay> GetReplays(FileSystemInfo fileOrDir, string? coachFilter = null, string? teamFilter = null)
     {
+        var replayTasks = new HashSet<Task<Replay>>();
+
         if (fileOrDir is DirectoryInfo dir)
         {
-            var replayTasks = new List<Task<Replay>>();
-
-            Regex coachPattern = null, teamPattern = null;
+            Regex? coachPattern = null, teamPattern = null;
             if (!string.IsNullOrEmpty(coachFilter))
             {
                 coachPattern = new Regex(coachFilter, RegexOptions.IgnoreCase);
@@ -28,23 +28,27 @@ public static class ReplayParser
             foreach (var path in dir.EnumerateFiles("*.bbr"))
             {
                 var doc = LoadDocument(path);
-                var coaches = GetCoachNames(doc.DocumentElement).ToArray();
-                var teamNames = GetTeamNames(doc.DocumentElement).ToArray();
+                var coaches = GetCoachNames(doc.DocumentElement!).ToArray();
+                var teamNames = GetTeamNames(doc.DocumentElement!).ToArray();
                 var teamMatches = teamPattern == null || teamNames.Any(teamPattern.IsMatch);
                 var coachMatches = coachPattern == null || coaches.Any(coachPattern.IsMatch);
                 if (teamMatches && coachMatches)
                 {
-                    replayTasks.Add(GetReplayAsync(path, doc.DocumentElement));
+                    replayTasks.Add(GetReplayAsync(path, doc.DocumentElement!));
                 }
             }
-
-            Task.WaitAll(replayTasks.ToArray<Task>());
-            return replayTasks.Select(t => t.Result).ToList();
         }
-
+        else
         {
             var doc = LoadDocument((FileInfo)fileOrDir);
-            return new[] { GetReplayAsync((FileInfo)fileOrDir, doc.DocumentElement).Result };
+            replayTasks.Add(GetReplayAsync((FileInfo)fileOrDir, doc.DocumentElement!));
+        }
+
+        while (replayTasks.Count > 0)
+        {
+            var task = await Task.WhenAny(replayTasks);
+            replayTasks.Remove(task);
+            yield return await task;
         }
     }
 
