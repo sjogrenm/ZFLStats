@@ -6,7 +6,7 @@ using System.Xml;
 
 namespace BloodBowl3;
 
-public static class ReplayParser
+public static partial class ReplayParser
 {
     public static async IAsyncEnumerable<Replay> GetReplays(FileSystemInfo fileOrDir, string? coachFilter = null, string? teamFilter = null)
     {
@@ -65,32 +65,41 @@ public static class ReplayParser
 
     private static Task<XmlDocument> LoadDocumentAsync(FileInfo path) => Task.Run(() => LoadDocument(path));
 
+    [GeneratedRegex(@"<(MessageData)>([^<]*)<\/MessageData>")]
+    private static partial Regex DoubleBase64Regex();
+
+    [GeneratedRegex(@"<(Name|LobbyId|GamerId|CreatorGamerId|MatchId)>([^<]{2,})<\/(Name|LobbyId|GamerId|CreatorGamerId|MatchId)>")]
+    private static partial Regex SingleBase64Regex();
+
     private static XmlDocument LoadDocument(FileInfo path)
     {
         var doc = new XmlDocument();
 
-        // TODO base64 decode lazily
         var contents = File.ReadAllText(path.FullName);
         var bytes = Convert.FromBase64String(contents);
         using var ms = new MemoryStream();
         ms.Write(bytes);
         ms.Position = 0;
-        var zs = new ZLibStream(ms, CompressionMode.Decompress, true);
+        using var zs = new ZLibStream(ms, CompressionMode.Decompress, true);
+
+        using var reader = new StreamReader(zs);
+        var xmlContents = reader.ReadToEnd();
+        xmlContents = DoubleBase64Regex().Replace(xmlContents, ReplaceDoubleBase64);
+        xmlContents = SingleBase64Regex().Replace(xmlContents, ReplaceSingleBase64);
 
 #if DEBUG
         if (!File.Exists(path.FullName + ".xml"))
         {
-            using var fs = File.Create(path.FullName + ".xml");
-            zs.CopyTo(fs);
-            zs.Close();
-            ms.Position = 0;
-            zs = new ZLibStream(ms, CompressionMode.Decompress);
+            File.WriteAllText(path.FullName + ".xml", xmlContents);
         }
 #endif
 
-        doc.Load(zs);
-        zs.Close();
+        doc.LoadXml(xmlContents);
         return doc;
+
+        static string ReplaceDoubleBase64(Match match) => $"<{match.Groups[1].ValueSpan}>{match.Groups[2].Value.FromBase64().FromBase64()}</{match.Groups[1].ValueSpan}>";
+
+        static string ReplaceSingleBase64(Match match) => $"<{match.Groups[1].ValueSpan}>{match.Groups[2].Value.FromBase64()}</{match.Groups[1].ValueSpan}>";
     }
 
     public static Replay GetReplay(FileInfo file, XmlElement root)
@@ -101,18 +110,18 @@ public static class ReplayParser
         {
             if (gameInfos.SelectSingleNode("Competition/CompetitionInfos") is XmlElement compInfos)
             {
-                replay.CompetitionName = compInfos["Name"].InnerText.FromBase64();
+                replay.CompetitionName = compInfos["Name"]!.InnerText;
             }
 
             if (gameInfos.SelectSingleNode("GamersInfos") is XmlElement gamersInfos)
             {
                 var coaches = gamersInfos.SelectNodes("GamerInfos/Name").Cast<XmlNode>().ToArray();
-                replay.HomeCoach = coaches[0].InnerText.FromBase64();
-                replay.VisitingCoach = coaches[1].InnerText.FromBase64();
+                replay.HomeCoach = coaches[0].InnerText;
+                replay.VisitingCoach = coaches[1].InnerText;
 
                 var teamNameNodes = gamersInfos.SelectNodes("GamerInfos/Roster/Name").Cast<XmlElement>().ToArray();
-                replay.HomeTeam = new Team(teamNameNodes[0].InnerText.FromBase64(), replay.HomeCoach);
-                replay.VisitingTeam = new Team(teamNameNodes[1].InnerText.FromBase64(), replay.VisitingCoach);
+                replay.HomeTeam = new Team(teamNameNodes[0].InnerText, replay.HomeCoach);
+                replay.VisitingTeam = new Team(teamNameNodes[1].InnerText, replay.VisitingCoach);
             }
         }
 
@@ -142,14 +151,14 @@ public static class ReplayParser
 
     private static Player GetPlayer(int team, XmlElement playerData)
     {
-        return new Player(team, playerData["Id"]!.InnerText.ParseInt(), playerData["Name"]!.InnerText.FromBase64(), playerData["LobbyId"]?.InnerText.FromBase64());
+        return new Player(team, playerData["Id"]!.InnerText.ParseInt(), playerData["Name"]!.InnerText, playerData["LobbyId"]?.InnerText);
     }
 
     private static IEnumerable<string> GetTeamNames(XmlElement doc)
     {
         foreach (var node in doc.SelectNodes("NotificationGameJoined/GameInfos/GamersInfos/GamerInfos/Roster/Name")!.Cast<XmlElement>())
         {
-            yield return node.InnerText.FromBase64();
+            yield return node.InnerText;
         }
     }
 
@@ -157,7 +166,7 @@ public static class ReplayParser
     {
         foreach (var node in doc.SelectNodes("NotificationGameJoined/GameInfos/GamersInfos/GamerInfos/Name")!.Cast<XmlElement>())
         {
-            yield return node.InnerText.FromBase64();
+            yield return node.InnerText;
         }
     }
 }

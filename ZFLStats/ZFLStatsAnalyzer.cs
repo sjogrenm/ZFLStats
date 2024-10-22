@@ -62,13 +62,11 @@ internal class ZFLStatsAnalyzer(Replay replay)
                 {
                     foreach (var stepResult in node.SelectNodes("Sequence/StepResult")!.Cast<XmlElement>())
                     {
-                        var stepName = stepResult["Step"]!["Name"]!.InnerText.FromBase64();
-                        var stepMsgData = stepResult["Step"]!["MessageData"]!.InnerText.FromBase64().FromBase64();
-                        var step = new XmlDocument();
-                        step.LoadXml(stepMsgData);
-                        var stepType = (StepType)step.DocumentElement!["StepType"]!.InnerText.ParseInt();
-                        var playerId = step.DocumentElement["PlayerId"]?.InnerText.ParseInt() ?? -1;
-                        var targetId = step.DocumentElement["TargetId"]?.InnerText.ParseInt() ?? -1;
+                        var stepName = stepResult["Step"]!["Name"]!.InnerText;
+                        var step = stepResult["Step"]!["MessageData"][stepName];
+                        var stepType = (StepType)step["StepType"]!.InnerText.ParseInt();
+                        var playerId = step["PlayerId"]?.InnerText.ParseInt() ?? -1;
+                        var targetId = step["TargetId"]?.InnerText.ParseInt() ?? -1;
                         Debug.WriteLine($"{stepName}: {stepType}, player {playerId}, target {targetId}");
                         switch (stepType)
                         {
@@ -127,19 +125,17 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
                         foreach (var results in stepResult.SelectNodes("Results/StringMessage")!.Cast<XmlElement>())
                         {
-                            var resultsName = results["Name"]!.InnerText.FromBase64();
-                            var resultsMsgData = results["MessageData"]!.InnerText.FromBase64().FromBase64();
-                            var result = new XmlDocument();
-                            result.LoadXml(resultsMsgData);
-                            var playerIdR = result.DocumentElement!["PlayerId"]?.InnerText.ParseInt() ?? -1;
-                            var reason = result.DocumentElement["Reason"]?.InnerXml.ParseInt() ?? -1;
+                            var resultsName = results["Name"]!.InnerText;
+                            var result = results["MessageData"]![resultsName];
+                            var playerIdR = result!["PlayerId"]?.InnerText.ParseInt() ?? -1;
+                            var reason = result["Reason"]?.InnerXml.ParseInt() ?? -1;
 
                             switch (resultsName)
                             {
                                 case "ResultSkillUsage":
                                     {
-                                        var skill = (Skill)result.DocumentElement.SelectSingleNode("Skill")!.InnerText.ParseInt();
-                                        var used = result.DocumentElement.SelectSingleNode("Used")!.InnerText == "1";
+                                        var skill = (Skill)result.SelectSingleNode("Skill")!.InnerText.ParseInt();
+                                        var used = result.SelectSingleNode("Used")!.InnerText == "1";
                                         if (used && skill == Skill.StripBall)
                                         {
                                             this.GetStatsFor(playerIdR).Sacks += 1;
@@ -150,7 +146,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     break;
                                 case "ResultMoveOutcome":
                                     {
-                                        if (result.DocumentElement.SelectSingleNode("Rolls/RollSummary") is XmlElement roll)
+                                        if (result.SelectSingleNode("Rolls/RollSummary") is XmlElement roll)
                                         {
                                             var rollType = (RollType)roll["RollType"]!.InnerText.ParseInt();
                                             var outcome = roll["Outcome"]!.InnerText;
@@ -165,11 +161,11 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     break;
                                 case "ResultRoll":
                                     {
-                                        var dice = result.DocumentElement.SelectNodes("Dice/Die")!.Cast<XmlElement>().ToArray();
+                                        var dice = result.SelectNodes("Dice/Die")!.Cast<XmlElement>().ToArray();
                                         var dieType = (DieType)dice[0]["DieType"]!.InnerText.ParseInt();
                                         var values = dice.Select(d => d["Value"]!.InnerText.ParseInt()).ToArray();
-                                        var failed = result.DocumentElement["Outcome"]!.InnerText == "0";
-                                        var rollType = (RollType)result.DocumentElement["RollType"]!.InnerText.ParseInt();
+                                        var failed = result["Outcome"]!.InnerText == "0";
+                                        var rollType = (RollType)result["RollType"]!.InnerText.ParseInt();
 
                                         // Pass and catch reroll seem to be handled differently??
                                         if (failed && rollType == RollType.Pass)
@@ -193,7 +189,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     break;
                                 case "QuestionBlockDice":
                                     {
-                                        var dice = result.DocumentElement.SelectNodes("Dice/Die")!.Cast<XmlElement>().ToArray();
+                                        var dice = result.SelectNodes("Dice/Die")!.Cast<XmlElement>().ToArray();
                                         var dieType = (DieType)dice[0]["DieType"]!.InnerText.ParseInt();
                                         Debug.Assert(dieType == DieType.Block);
                                         var values = dice.Select(d => d["Value"]!.InnerText.ParseInt()).ToArray();
@@ -203,13 +199,13 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     break;
                                 case "ResultBlockRoll":
                                     {
-                                        var dieValue = result.DocumentElement.SelectSingleNode("Die/Value")!.InnerText.ParseInt();
+                                        var dieValue = result.SelectSingleNode("Die/Value")!.InnerText.ParseInt();
                                         Debug.WriteLine($">> Block die {dieValue}");
                                     }
                                     break;
                                 case "ResultPlayerRemoval":
                                     {
-                                        var situation = (PlayerSituation)result.DocumentElement["Situation"]!.InnerText.ParseInt();
+                                        var situation = (PlayerSituation)result["Situation"]!.InnerText.ParseInt();
                                         if (situation == PlayerSituation.Reserve)
                                         {
                                             Debug.WriteLine($">> Surf by {lastBlockingPlayerId} on {lastDefendingPlayerId}");
@@ -251,9 +247,9 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     break;
                                 case "ResultBlockOutcome":
                                     {
-                                        var attackerId = result.DocumentElement["AttackerId"]!.InnerText.ParseInt();
-                                        var defenderId = result.DocumentElement["DefenderId"]!.InnerText.ParseInt();
-                                        var outcome = (BlockOutcome)result.DocumentElement["Outcome"]!.InnerText.ParseInt();
+                                        var attackerId = result["AttackerId"]!.InnerText.ParseInt();
+                                        var defenderId = result["DefenderId"]!.InnerText.ParseInt();
+                                        var outcome = (BlockOutcome)result["Outcome"]!.InnerText.ParseInt();
                                         this.GetStatsFor(attackerId).BlocksInflicted++;
                                         this.GetStatsFor(defenderId).BlocksSustained++;
                                         lastBlockingPlayerId = attackerId;
@@ -284,29 +280,29 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     break;
                                 case "ResultInjuryRoll":
                                     {
-                                        var injury = (InjuryOutcome)result.DocumentElement["Outcome"]!.InnerText.ParseInt();
+                                        var injury = (InjuryOutcome)result["Outcome"]!.InnerText.ParseInt();
                                         Debug.WriteLine($">> Injury outcome {injury}");
                                     }
                                     break;
                                 case "ResultCasualtyRoll":
-                                    var casualty = (CasualtyOutcome)result.DocumentElement["Outcome"]!.InnerText.ParseInt();
+                                    var casualty = (CasualtyOutcome)result["Outcome"]!.InnerText.ParseInt();
                                     lastCas = casualty;
                                     Debug.WriteLine($">> Casualty outcome {casualty}");
                                     break;
                                 case "ResultRaisedDead":
-                                    var zombieId = result.DocumentElement["RaisedPlayerId"]!.InnerText.ParseInt();
+                                    var zombieId = result["RaisedPlayerId"]!.InnerText.ParseInt();
                                     Debug.WriteLine($">> Raising {lastDeadPlayerId} as {zombieId}");
                                     break;
                                 case "ResultPlayerSentOff":
                                     {
-                                        var sentOffId = result.DocumentElement["PlayerId"]!.InnerText.ParseInt();
+                                        var sentOffId = result["PlayerId"]!.InnerText.ParseInt();
                                         this.GetStatsFor(sentOffId).Expulsions += 1;
                                         Debug.WriteLine($">> Sending {sentOffId} off the pitch");
                                     }
                                     break;
                                 case "ResultUseAction":
                                     {
-                                        var action = (SequenceType)result.DocumentElement["Action"]!.InnerText.ParseInt();
+                                        var action = (SequenceType)result["Action"]!.InnerText.ParseInt();
                                         switch (action)
                                         {
                                             case SequenceType.Blitz:
