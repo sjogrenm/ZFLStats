@@ -68,7 +68,7 @@ public static partial class ReplayParser
     [GeneratedRegex(@"<(MessageData)>([^<]*)<\/MessageData>")]
     private static partial Regex DoubleBase64Regex();
 
-    [GeneratedRegex(@"<(Name|LobbyId|GamerId|CreatorGamerId|MatchId)>([^<]{2,})<\/(Name|LobbyId|GamerId|CreatorGamerId|MatchId)>")]
+    [GeneratedRegex(@"<(Name|LobbyId|GamerId|CreatorGamerId|MatchId)>([^<]{3,})<\/(Name|LobbyId|GamerId|CreatorGamerId|MatchId)>")]
     private static partial Regex SingleBase64Regex();
 
     private static XmlDocument LoadDocument(FileInfo path)
