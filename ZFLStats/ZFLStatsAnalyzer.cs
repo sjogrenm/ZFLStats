@@ -34,14 +34,11 @@ internal class ZFLStatsAnalyzer(Replay replay)
             stats.Mvp = p.Mvp;
         }
 
+        int activePlayer = -1;
         int lastBlockingPlayerId = -1;
-        int lastDefendingPlayerId = -1;
-        BlockOutcome? lastBlockOutcome = null;
 
         int passingPlayer = -1;
         int catchingPlayer = -1;
-
-        int movingPlayer = -1;
 
         int ballCarrier = -1;
 
@@ -71,32 +68,24 @@ internal class ZFLStatsAnalyzer(Replay replay)
                         switch (stepType)
                         {
                             case StepType.Kickoff:
+                                activePlayer = -1;
                                 lastBlockingPlayerId = -1;
-                                lastDefendingPlayerId = -1;
                                 passingPlayer = -1;
                                 catchingPlayer = -1;
                                 ballCarrier = -1;
                                 break;
                             case StepType.Activation:
+                                activePlayer = playerId;
                                 lastBlockingPlayerId = -1;
-                                lastDefendingPlayerId = -1;
                                 passingPlayer = -1;
                                 catchingPlayer = -1;
                                 break;
                             case StepType.Move:
-                                lastBlockingPlayerId = -1;
-                                lastDefendingPlayerId = -1;
-                                passingPlayer = -1;
-                                catchingPlayer = -1;
-                                movingPlayer = playerId;
                                 break;
                             case StepType.Damage:
                                 break;
                             case StepType.Block:
                                 lastBlockingPlayerId = playerId;
-                                lastDefendingPlayerId = targetId;
-                                passingPlayer = -1;
-                                catchingPlayer = -1;
                                 break;
                             case StepType.Pass:
                                 passingPlayer = playerId;
@@ -105,20 +94,13 @@ internal class ZFLStatsAnalyzer(Replay replay)
                             case StepType.Catch:
                                 break;
                             case StepType.Foul:
-                                lastBlockingPlayerId = -1;
-                                lastDefendingPlayerId = -1;
-                                passingPlayer = -1;
-                                catchingPlayer = -1;
                                 this.GetStatsFor(playerId).FoulsInflicted += 1;
                                 this.GetStatsFor(targetId).FoulsSustained += 1;
                                 break;
                             case StepType.Referee:
                                 break;
-                            default:
-                                break;
                         }
 
-                        CasualtyOutcome? lastCas = null;
                         int lastDeadPlayerId = -1;
 
                         bool catchSuccess = false;
@@ -150,9 +132,9 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         {
                                             var rollType = (RollType)roll["RollType"]!.InnerText.ParseInt();
                                             var outcome = roll["Outcome"]!.InnerText;
-                                            if (rollType == RollType.Dodge && outcome == "0" && replay.GetPlayer(movingPlayer).Team == activeGamer)
+                                            if (rollType == RollType.Dodge && outcome == "0" && replay.GetPlayer(playerId).Team == activeGamer)
                                             {
-                                                this.GetStatsFor(movingPlayer).DodgeTurnovers += 1;
+                                                this.GetStatsFor(playerId).DodgeTurnovers += 1;
                                             }
                                         }
 
@@ -181,7 +163,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
                                         if (rollType == RollType.Armor)
                                         {
-                                            this.GetStatsFor(targetId).ArmorRollsSustained += 1;
+                                            this.GetStatsFor(playerId).ArmorRollsSustained += 1;
                                         }
 
                                         Debug.WriteLine($">> {rollType} {dieType} rolls: {string.Join(", ", values)}");
@@ -194,7 +176,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         Debug.Assert(dieType == DieType.Block);
                                         var values = dice.Select(d => d["Value"]!.InnerText.ParseInt()).ToArray();
                                         Debug.WriteLine($">> Picking block dice: {string.Join(", ", values)}");
-                                        if (values.Length >= 2 && values.All(v => v == 0)) this.GetStatsFor(lastBlockingPlayerId).DubskullsRolled += 1;
+                                        if (values.Length >= 2 && values.All(v => v == 0)) this.GetStatsFor(playerId).DubskullsRolled += 1;
                                     }
                                     break;
                                 case "ResultBlockRoll":
@@ -206,43 +188,35 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                 case "ResultPlayerRemoval":
                                     {
                                         var situation = (PlayerSituation)result["Situation"]!.InnerText.ParseInt();
+                                        var status = (PlayerStatus)result["Status"]!.InnerText.ParseInt();
                                         if (situation == PlayerSituation.Reserve)
                                         {
-                                            Debug.WriteLine($">> Surf by {lastBlockingPlayerId} on {lastDefendingPlayerId}");
-                                            if (lastBlockingPlayerId >= 0 && lastDefendingPlayerId >= 0)
+                                            Debug.WriteLine($">> Surf by {activePlayer} on {playerIdR}");
+                                            this.GetStatsFor(activePlayer).SurfsInflicted += 1;
+                                            this.GetStatsFor(playerIdR).SurfsSustained += 1;
+                                            if (ballCarrier >= 0 && ballCarrier == playerIdR)
                                             {
-                                                this.GetStatsFor(lastBlockingPlayerId).SurfsInflicted += 1;
-                                                this.GetStatsFor(lastDefendingPlayerId).SurfsSustained += 1;
-                                                if (ballCarrier >= 0 && ballCarrier == lastDefendingPlayerId)
-                                                {
-                                                    this.GetStatsFor(lastBlockingPlayerId).Sacks += 1;
-                                                }
+                                                this.GetStatsFor(activePlayer).Sacks += 1;
                                             }
-
-                                            lastBlockingPlayerId = -1;
-                                            lastDefendingPlayerId = -1;
-                                            lastBlockOutcome = null;
                                         }
                                         else
                                         {
                                             Debug.WriteLine($">> Removing {playerIdR}, situation {situation}, reason {reason}");
-                                            if (situation == PlayerSituation.Injured && playerIdR == lastDefendingPlayerId)
+                                            if (situation == PlayerSituation.Injured)
                                             {
-                                                this.GetStatsFor(lastDefendingPlayerId).CasSustained += 1;
-                                                if (lastBlockingPlayerId >= 0)
+                                                this.GetStatsFor(playerIdR).CasSustained += 1;
+                                                if (activePlayer >= 0)
                                                 {
-                                                    this.GetStatsFor(lastBlockingPlayerId).CasInflicted += 1;
-                                                    if (lastCas == CasualtyOutcome.Dead) this.GetStatsFor(lastBlockingPlayerId).Kills += 1;
+                                                    this.GetStatsFor(activePlayer).CasInflicted += 1;
+                                                    if (status == PlayerStatus.Dead) this.GetStatsFor(activePlayer).Kills += 1;
                                                 }
                                             }
 
-                                            if (lastCas == CasualtyOutcome.Dead)
+                                            if (status == PlayerStatus.Dead)
                                             {
                                                 lastDeadPlayerId = playerIdR;
                                             }
                                         }
-
-                                        lastCas = null;
                                     }
                                     break;
                                 case "ResultBlockOutcome":
@@ -253,9 +227,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         this.GetStatsFor(attackerId).BlocksInflicted++;
                                         this.GetStatsFor(defenderId).BlocksSustained++;
                                         lastBlockingPlayerId = attackerId;
-                                        lastDefendingPlayerId = defenderId;
-                                        lastBlockOutcome = outcome;
-
+                                        
                                         if (ballCarrier >= 0 && defenderId == ballCarrier)
                                         {
                                             switch (outcome)
@@ -286,7 +258,6 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     break;
                                 case "ResultCasualtyRoll":
                                     var casualty = (CasualtyOutcome)result["Outcome"]!.InnerText.ParseInt();
-                                    lastCas = casualty;
                                     Debug.WriteLine($">> Casualty outcome {casualty}");
                                     break;
                                 case "ResultRaisedDead":
