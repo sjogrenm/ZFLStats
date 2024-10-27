@@ -189,7 +189,11 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     {
                                         var situation = (PlayerSituation)result["Situation"]!.InnerText.ParseInt();
                                         var status = (PlayerStatus)result["Status"]!.InnerText.ParseInt();
-                                        if (situation == PlayerSituation.Reserve)
+                                        Debug.WriteLine($">> Removing {playerIdR}, situation {situation}, reason {reason}");
+
+                                        // For some reason we seem to get two player removal events for surfs, one with reason 1 (doesn't have injury info)
+                                        // and then another removal event with reason 0 with injury info (just like for blocks etc)
+                                        if (reason == 1)
                                         {
                                             Debug.WriteLine($">> Surf by {activePlayer} on {playerIdR}");
                                             this.GetStatsFor(activePlayer).SurfsInflicted += 1;
@@ -201,7 +205,6 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         }
                                         else
                                         {
-                                            Debug.WriteLine($">> Removing {playerIdR}, situation {situation}, reason {reason}");
                                             if (situation == PlayerSituation.Injured)
                                             {
                                                 this.GetStatsFor(playerIdR).CasSustained += 1;
