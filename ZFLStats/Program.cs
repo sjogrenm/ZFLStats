@@ -6,6 +6,8 @@ using BloodBowl3;
 
 public class Program
 {
+    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions { WriteIndented = true };
+
     private static async Task RunAsync(FileSystemInfo fileOrDir, string? coachFilter, string? teamFilter, FileInfo? outputFile, bool autoOut, string? format)
     {
         await using var outFile = outputFile?.CreateText();
@@ -29,7 +31,7 @@ public class Program
             {
                 if (format != "json")
                     return;
-                var text = JsonSerializer.Serialize(value);
+                var text = JsonSerializer.Serialize(value, options: JsonOptions);
                 outFile?.WriteLine(text);
                 autoOutFile?.WriteLine(text);
             }
