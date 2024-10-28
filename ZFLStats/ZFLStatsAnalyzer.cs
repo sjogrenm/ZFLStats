@@ -35,7 +35,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
         }
 
         int activePlayer = -1;
-        int lastBlockingPlayerId = -1;
+        int blockingPlayer = -1;
 
         int passingPlayer = -1;
         int catchingPlayer = -1;
@@ -69,14 +69,14 @@ internal class ZFLStatsAnalyzer(Replay replay)
                         {
                             case StepType.Kickoff:
                                 activePlayer = -1;
-                                lastBlockingPlayerId = -1;
+                                blockingPlayer = -1;
                                 passingPlayer = -1;
                                 catchingPlayer = -1;
                                 ballCarrier = -1;
                                 break;
                             case StepType.Activation:
                                 activePlayer = playerId;
-                                lastBlockingPlayerId = -1;
+                                blockingPlayer = -1;
                                 passingPlayer = -1;
                                 catchingPlayer = -1;
                                 break;
@@ -85,7 +85,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                             case StepType.Damage:
                                 break;
                             case StepType.Block:
-                                lastBlockingPlayerId = playerId;
+                                blockingPlayer = playerId;
                                 break;
                             case StepType.Pass:
                                 passingPlayer = playerId;
@@ -195,9 +195,17 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         // and then another removal event with reason 0 with injury info (just like for blocks etc)
                                         if (reason == 1)
                                         {
-                                            Debug.WriteLine($">> Surf by {activePlayer} on {playerIdR}");
-                                            this.GetStatsFor(activePlayer).SurfsInflicted += 1;
-                                            this.GetStatsFor(playerIdR).SurfsSustained += 1;
+                                            if (blockingPlayer >= 0)
+                                            {
+                                                Debug.WriteLine($">> Surf by {activePlayer} on {playerIdR}");
+                                                this.GetStatsFor(activePlayer).SurfsInflicted += 1;
+                                                this.GetStatsFor(playerIdR).SurfsSustained += 1;
+                                            }
+                                            else
+                                            {
+                                                Debug.WriteLine($">> Non-surf removal by {activePlayer} on {playerIdR}");
+                                            }
+
                                             if (ballCarrier >= 0 && ballCarrier == playerIdR)
                                             {
                                                 this.GetStatsFor(activePlayer).Sacks += 1;
@@ -229,7 +237,6 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         var outcome = (BlockOutcome)result["Outcome"]!.InnerText.ParseInt();
                                         this.GetStatsFor(attackerId).BlocksInflicted++;
                                         this.GetStatsFor(defenderId).BlocksSustained++;
-                                        lastBlockingPlayerId = attackerId;
                                         
                                         if (ballCarrier >= 0 && defenderId == ballCarrier)
                                         {
