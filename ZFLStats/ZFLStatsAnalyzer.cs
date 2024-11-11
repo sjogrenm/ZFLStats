@@ -54,6 +54,24 @@ internal class ZFLStatsAnalyzer(Replay replay)
                 {
                     turnover = node["Reason"]!.InnerText == "2";
                     activeGamer = node["NextPlayingGamer"]?.InnerText.ParseInt() ?? 0;
+                    activePlayer = -1;
+                    blockingPlayer = -1;
+                    passingPlayer = -1;
+                    catchingPlayer = -1;
+                    Debug.WriteLine($"End Turn{(turnover ? " (turnover!)" : string.Empty)}");
+                }
+                else if (node.LocalName == "EventUseSpecialCard")
+                {
+                    var cardId = (SpecialCard)node["CardId"]!.InnerText.ParseInt();
+                    if (cardId is SpecialCard.Fireball or SpecialCard.Zap)
+                    {
+                        // Not sure if any other cards are relevant?
+                        activePlayer = -1;
+                        blockingPlayer = -1;
+                        passingPlayer = -1;
+                        catchingPlayer = -1;
+                        Debug.WriteLine("Wizard used");
+                    }
                 }
                 else if (node.LocalName == "EventExecuteSequence")
                 {
@@ -114,15 +132,18 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
                             switch (resultsName)
                             {
+                                case "QuestionTouchBack":
+                                    {
+                                        activePlayer = -1;
+                                        blockingPlayer = -1;
+                                        passingPlayer = -1;
+                                        catchingPlayer = -1;
+                                    }
+                                    break;
                                 case "ResultSkillUsage":
                                     {
                                         var skill = (Skill)result.SelectSingleNode("Skill")!.InnerText.ParseInt();
                                         var used = result.SelectSingleNode("Used")!.InnerText == "1";
-                                        if (used && skill == Skill.StripBall)
-                                        {
-                                            this.GetStatsFor(playerIdR).Sacks += 1;
-                                        }
-
                                         Debug.WriteLine($"ResultSkillUsage {skill} used? {used}");
                                     }
                                     break;
@@ -205,11 +226,6 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                             {
                                                 Debug.WriteLine($">> Non-surf removal by {activePlayer} on {playerIdR}");
                                             }
-
-                                            if (ballCarrier >= 0 && ballCarrier == playerIdR)
-                                            {
-                                                this.GetStatsFor(activePlayer).Sacks += 1;
-                                            }
                                         }
                                         else
                                         {
@@ -237,26 +253,6 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         var outcome = (BlockOutcome)result["Outcome"]!.InnerText.ParseInt();
                                         this.GetStatsFor(attackerId).BlocksInflicted++;
                                         this.GetStatsFor(defenderId).BlocksSustained++;
-                                        
-                                        if (ballCarrier >= 0 && defenderId == ballCarrier)
-                                        {
-                                            switch (outcome)
-                                            {
-                                                case BlockOutcome.AttackerDown:
-                                                case BlockOutcome.BothStanding:
-                                                case BlockOutcome.Pushed:
-                                                    break;
-                                                case BlockOutcome.BothDown:
-                                                case BlockOutcome.BothWrestleDown:
-                                                case BlockOutcome.DefenderDown:
-                                                case BlockOutcome.DefenderPushedDown:
-                                                    this.GetStatsFor(attackerId).Sacks += 1;
-                                                    break;
-                                                default:
-                                                    throw new ArgumentOutOfRangeException();
-                                            }
-                                        }
-
                                         Debug.WriteLine($">> Block by {attackerId} on {defenderId}, outcome {outcome}");
                                     }
                                     break;
@@ -316,19 +312,32 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
             if (replayStep.SelectSingleNode("BoardState/Ball") is XmlElement ballNode)
             {
-                if (ballNode["Carrier"] is { } carrierNode)
+                if (ballNode["IsHeld"]?.InnerText != "1" || ballNode["Carrier"] == null)
+                {
+                    if (ballCarrier != -1)
+                    {
+                        if (activePlayer != -1 && activePlayer != ballCarrier)
+                        {
+                            GetStatsFor(activePlayer).Sacks += 1;
+                        }
+
+                        ballCarrier = -1;
+                        Debug.WriteLine("* Ball is loose!");
+                    }
+                }
+                else if (ballNode["Carrier"] is { } carrierNode)
                 {
                     var newCarrier = carrierNode.InnerText.ParseInt();
                     if (newCarrier != ballCarrier)
                     {
+                        if (activePlayer != -1 && ballCarrier != -1 && activePlayer != ballCarrier)
+                        {
+                            GetStatsFor(activePlayer).Sacks += 1;
+                        }
+
                         ballCarrier = newCarrier;
                         Debug.WriteLine($"* New ball carrier {newCarrier}!");
                     }
-                }
-                else if (ballCarrier != -1)
-                {
-                    ballCarrier = -1;
-                    Debug.WriteLine("* Ball is loose!");
                 }
             }
         }
