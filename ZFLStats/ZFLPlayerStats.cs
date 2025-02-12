@@ -46,6 +46,8 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId)
 
     public int Blitzes { get; set; }
 
+    public int Deaths { get; set; }
+
     internal bool Mvp { get; set; }
 
     internal int ExpectedSPP => this.TouchdownsScored * 3 + this.CasInflicted * 2 + this.PassCompletions + (this.Mvp ? 4 : 0);

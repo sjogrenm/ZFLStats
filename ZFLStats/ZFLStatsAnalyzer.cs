@@ -235,7 +235,11 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                                 if (activePlayer >= 0)
                                                 {
                                                     this.GetStatsFor(activePlayer).CasInflicted += 1;
-                                                    if (status == PlayerStatus.Dead) this.GetStatsFor(activePlayer).Kills += 1;
+                                                    if (status == PlayerStatus.Dead)
+                                                    {
+                                                        this.GetStatsFor(activePlayer).Kills += 1;
+                                                        this.GetStatsFor(playerIdR).Deaths += 1;
+                                                    }
                                                 }
                                             }
 
