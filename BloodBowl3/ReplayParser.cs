@@ -151,7 +151,7 @@ public static partial class ReplayParser
 
     private static Player GetPlayer(int team, XmlElement playerData)
     {
-        return new Player(team, playerData["Id"]!.InnerText.ParseInt(), playerData["Name"]!.InnerText, playerData["LobbyId"]?.InnerText);
+        return new Player(team, playerData["Id"]!.InnerText.ParseInt(), playerData["Name"]?.InnerText ?? "null", playerData["LobbyId"]?.InnerText);
     }
 
     private static IEnumerable<string> GetTeamNames(XmlElement doc)

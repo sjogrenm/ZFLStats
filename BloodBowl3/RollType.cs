@@ -87,4 +87,5 @@ public enum RollType
     BadHabitsPrayer = 82,
     SwelteringHeatNumber = 83,
     PrayersTable = 84,
+    CindySpecial = 91,
 }

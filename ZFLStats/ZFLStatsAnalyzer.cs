@@ -11,14 +11,18 @@ internal class ZFLStatsAnalyzer(Replay replay)
 {
     private readonly Dictionary<int, ZFLPlayerStats> stats = new ();
 
-    public IEnumerable<ZFLPlayerStats> HomeTeamStats => replay.HomeTeam.Players.Keys.OrderBy(id => id).Select(this.GetStatsFor);
+    public ZFLTeamStats HomeTeamStats = new(0)
+    {
+        Name = replay.HomeTeam.Name,
+        // Note that the in-game dedicated fans are irrelevant for ZFL, so we only care about the dice roll
+        Fans = replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/HomeRoll/Dice/Die/Value")!.InnerText.ParseInt()
+    };
 
-    public IEnumerable<ZFLPlayerStats> VisitingTeamStats => replay.VisitingTeam.Players.Keys.OrderBy(id => id).Select(this.GetStatsFor);
-
-    // Note that the in-game dedicated fans are irrelevant for ZFL, so we only care about the dice roll
-    public int HomeFanAttendanceRoll => replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/HomeRoll/Dice/Die/Value")!.InnerText.ParseInt();
-
-    public int VisitingFanAttendanceRoll => replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/AwayRoll/Dice/Die/Value")!.InnerText.ParseInt();
+    public ZFLTeamStats VisitingTeamStats = new(1)
+    {
+        Name = replay.VisitingTeam.Name,
+        Fans = replay.ReplayRoot.SelectSingleNode("ReplayStep/EventFanFactor/AwayRoll/Dice/Die/Value")!.InnerText.ParseInt()
+    };
 
     public Task AnalyzeAsync()
     {
@@ -112,6 +116,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                             case StepType.Catch:
                                 break;
                             case StepType.Foul:
+                            case StepType.ChainsawFoul:
                                 this.GetStatsFor(playerId).FoulsInflicted += 1;
                                 this.GetStatsFor(targetId).FoulsSustained += 1;
                                 break;
@@ -169,6 +174,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         var values = dice.Select(d => d["Value"]!.InnerText.ParseInt()).ToArray();
                                         var failed = result["Outcome"]!.InnerText == "0";
                                         var rollType = (RollType)result["RollType"]!.InnerText.ParseInt();
+                                        var outcome = result["Outcome"]?.InnerText.ParseInt() ?? 0;
 
                                         // Pass and catch reroll seem to be handled differently??
                                         if (failed && rollType == RollType.Pass)
@@ -185,6 +191,26 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         if (rollType == RollType.Armor)
                                         {
                                             this.GetStatsFor(playerId).ArmorRollsSustained += 1;
+                                            if (outcome != 0)
+                                            {
+                                                this.GetStatsFor(playerId).ArmorBreaksSustained += 1;
+                                            }
+                                        }
+                                        else if (rollType == RollType.Bribe)
+                                        {
+                                            Debug.Assert(values.Length == 1);
+                                            this.GetTeamStatsFor(activeGamer).BribeRolls.Add(values[0]);
+                                        }
+                                        else if (rollType == RollType.ArgueTheCall)
+                                        {
+                                            Debug.Assert(values.Length == 1);
+                                            this.GetTeamStatsFor(activeGamer).ArgueTheCallRolls.Add(values[0]);
+                                        }
+
+                                        if (TryGetRollStatType(rollType, out var statType))
+                                        {
+                                            var dict = this.GetStatsFor(playerId).Rolls.AddOrGet(statType, () => new Dictionary<int[], int>(RollComparer.Default));
+                                            dict.AddOrUpdate(values, 1, r => r + 1);
                                         }
 
                                         Debug.WriteLine($">> {rollType} {dieType} rolls: {string.Join(", ", values)}");
@@ -196,6 +222,10 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         var dieType = (DieType)dice[0]["DieType"]!.InnerText.ParseInt();
                                         Debug.Assert(dieType == DieType.Block);
                                         var values = dice.Select(d => d["Value"]!.InnerText.ParseInt()).ToArray();
+                                        values.ForEach(dieValue =>
+                                        {
+                                            this.GetStatsFor(playerId).AllBlockDice.AddOrUpdate(BlockDieName(dieValue), 1, k => k + 1);
+                                        });
                                         Debug.WriteLine($">> Picking block dice: {string.Join(", ", values)}");
                                         if (values.Length >= 2 && values.All(v => v == 0)) this.GetStatsFor(playerId).DubskullsRolled += 1;
                                     }
@@ -203,6 +233,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                 case "ResultBlockRoll":
                                     {
                                         var dieValue = result.SelectSingleNode("Die/Value")!.InnerText.ParseInt();
+                                        this.GetStatsFor(playerId).ChosenBlockDice.AddOrUpdate(BlockDieName(dieValue), 1, k => k + 1);
                                         Debug.WriteLine($">> Block die {dieValue}");
                                     }
                                     break;
@@ -345,6 +376,60 @@ internal class ZFLStatsAnalyzer(Replay replay)
                 }
             }
         }
+
+        this.stats.Values.ForEach(p =>
+        {
+            if (p.Rolls.TryGetValue(RollStatType.Other, out var rolls))
+            {
+                rolls.ForEach(kvp =>
+                {
+                    Debug.Assert(kvp.Key.Length == 1);
+                    Debug.Assert(kvp.Key[0] >= 1 && kvp.Key[0] <= 6);
+                    p.OtherDice.Add(kvp.Key[0], kvp.Value);
+                });
+            }
+
+            if (p.Rolls.TryGetValue(RollStatType.ArmorOrInjury, out rolls))
+            {
+                rolls.ForEach(kvp =>
+                {
+                    var r = kvp.Key.Sum();
+                    p.ArmorAndInjuryDice.AddOrUpdate(r, kvp.Value, k => k + kvp.Value);
+                });
+            }
+        });
+
+        static void UpdateTeamStats(ZFLTeamStats team)
+        {
+            team.Players.ForEach(p =>
+            {
+                foreach (var kvp in p.AllBlockDice)
+                {
+                    team.AllBlockDice.AddOrUpdate(kvp.Key, kvp.Value, v => v + kvp.Value);
+                }
+
+                foreach (var kvp in p.ChosenBlockDice)
+                {
+                    team.ChosenBlockDice.AddOrUpdate(kvp.Key, kvp.Value, v => v + kvp.Value);
+                }
+
+                foreach (var kvp in p.ArmorAndInjuryDice)
+                {
+                    team.ArmorAndInjuryDice.AddOrUpdate(kvp.Key, kvp.Value, v => v + kvp.Value);
+                }
+
+                foreach (var kvp in p.OtherDice)
+                {
+                    team.OtherDice.AddOrUpdate(kvp.Key, kvp.Value, v => v + kvp.Value);
+                }
+            });
+        }
+
+        this.HomeTeamStats.Players = replay.HomeTeam.Players.Keys.OrderBy(id => id).Select(this.GetStatsFor).ToList();
+        this.VisitingTeamStats.Players = replay.VisitingTeam.Players.Keys.OrderBy(id => id).Select(this.GetStatsFor).ToList();
+
+        UpdateTeamStats(this.HomeTeamStats);
+        UpdateTeamStats(this.VisitingTeamStats);
     }
 
     private ZFLPlayerStats GetStatsFor(int playerId)
@@ -358,5 +443,103 @@ internal class ZFLStatsAnalyzer(Replay replay)
         }
 
         return playerStats;
+    }
+
+    private ZFLTeamStats GetTeamStatsFor(int activeGamer)
+    {
+        if (activeGamer == 0)
+            return this.HomeTeamStats;
+
+        if (activeGamer == 1)
+            return this.VisitingTeamStats;
+
+        throw new ArgumentException();
+    }
+
+    private static bool TryGetRollStatType(RollType type, out RollStatType statType)
+    {
+        switch (type)
+        {
+            case RollType.Block:
+                statType = RollStatType.Block;
+                return true;
+            case RollType.Armor:
+            case RollType.Injury:
+                statType = RollStatType.ArmorOrInjury;
+                return true;
+            case RollType.Casualty:
+                statType = RollStatType.Casualty;
+                return true;
+            case RollType.GFI:
+            case RollType.Dodge:
+            case RollType.PickUp:
+            case RollType.Pass:
+            case RollType.Interception:
+            case RollType.Catch:
+            case RollType.WakeUp:
+            case RollType.Pro:
+            case RollType.StandUp:
+            case RollType.JumpOver:
+            case RollType.Dauntless:
+            case RollType.JumpUp:
+            case RollType.BoneHead:
+            case RollType.ReallyStupid:
+            case RollType.UnchannelledFury:
+            case RollType.AnimalSavagery:
+            case RollType.FoulAppearance:
+            case RollType.ThrowTeamMate:
+            case RollType.Land:
+            case RollType.AlwaysHungry:
+            case RollType.VomitAccuracy:
+            case RollType.Regeneration:
+            case RollType.Chainsaw:
+            case RollType.TakeRoot:
+            case RollType.Loner:
+            case RollType.Animosity:
+                statType = RollStatType.Other;
+                return true;
+            default:
+                statType = (RollStatType)42;
+                return false;
+        }
+    }
+
+    private static string BlockDieName(int die)
+    {
+        switch (die)
+        {
+            case 0:
+                return "AttackerDown";
+            case 1:
+                return "BothDown";
+            case 2:
+                return "Push";
+            case 3:
+                return "DefenderStumbles";
+            case 4:
+                return "DefenderDown";
+            default:
+                throw new ArgumentException();
+        }
+    }
+
+    public class RollComparer : IEqualityComparer<int[]>
+    {
+        public static RollComparer Default = new RollComparer();
+
+        public bool Equals(int[] x, int[] y)
+        {
+            if (x.Length != y.Length)
+            {
+                return false;
+            }
+
+            return x.OrderBy(a => a).SequenceEqual(y.OrderBy(b => b));
+        }
+
+        public int GetHashCode(int[] obj)
+        {
+            return obj.OrderBy(a => a).Select(a => a.GetHashCode()).Sum();
+        }
     }
 }

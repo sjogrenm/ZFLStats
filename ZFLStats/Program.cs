@@ -39,13 +39,13 @@ public class Program
             var properties = typeof(ZFLPlayerStats).GetProperties();
 
             WriteToCsv($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
-            WriteToCsv($" Fan attendance home: {analyzer.HomeFanAttendanceRoll}");
-            WriteToCsv($" Fan attendance away: {analyzer.VisitingFanAttendanceRoll}");
+            WriteToCsv($" Fan attendance home: {analyzer.HomeTeamStats.Fans}");
+            WriteToCsv($" Fan attendance away: {analyzer.VisitingTeamStats.Fans}");
             WriteToCsv(string.Join(';', properties.Select(p => p.Name)));
 
             Console.WriteLine($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
-            Console.WriteLine($" Fan attendance: {analyzer.HomeFanAttendanceRoll} / {analyzer.VisitingFanAttendanceRoll}");
-            foreach (var playerStats in analyzer.HomeTeamStats.Concat(analyzer.VisitingTeamStats))
+            Console.WriteLine($" Fan attendance: {analyzer.HomeTeamStats.Fans} / {analyzer.VisitingTeamStats.Fans}");
+            foreach (var playerStats in analyzer.HomeTeamStats.Players.Concat(analyzer.VisitingTeamStats.Players))
             {
                 Console.WriteLine($"  {playerStats.Name} (id={playerStats.Id}):");
                 playerStats.PrintToConsole(4);
@@ -60,18 +60,8 @@ public class Program
             WriteJson(new
             {
                 id = replay.File.Name.Replace(".bbr", string.Empty),
-                home = new
-                {
-                    name = replay.HomeTeam.Name,
-                    fans = analyzer.HomeFanAttendanceRoll,
-                    players = analyzer.HomeTeamStats
-                },
-                away = new
-                {
-                    name = replay.VisitingTeam.Name,
-                    fans = analyzer.VisitingFanAttendanceRoll,
-                    players = analyzer.VisitingTeamStats
-                }
+                home = analyzer.HomeTeamStats,
+                away = analyzer.VisitingTeamStats
             });
         }
     }

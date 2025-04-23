@@ -40,6 +40,8 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId)
 
     public int ArmorRollsSustained { get; set; }
 
+    public int ArmorBreaksSustained { get; set; }
+
     public int BlocksInflicted { get; set; }
 
     public int BlocksSustained { get; set; }
@@ -48,7 +50,17 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId)
 
     public int Deaths { get; set; }
 
+    public Dictionary<string, int> AllBlockDice { get; } = new();
+
+    public Dictionary<string, int> ChosenBlockDice { get; } = new();
+
+    public Dictionary<int, int> ArmorAndInjuryDice { get; } = new();
+
+    public Dictionary<int, int> OtherDice { get; } = new();
+
     internal bool Mvp { get; set; }
+
+    internal Dictionary<RollStatType, Dictionary<int[], int>> Rolls { get; } = new ();
 
     internal int ExpectedSPP => this.TouchdownsScored * 3 + this.CasInflicted * 2 + this.PassCompletions + (this.Mvp ? 4 : 0);
 
