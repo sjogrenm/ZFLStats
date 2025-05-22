@@ -48,6 +48,9 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
         int activeGamer = -1;
 
+        var lastTeamWithPossession = -1;
+        int[] touchdownTurnCounter = null;
+
         foreach (var replayStep in replay.ReplayRoot.SelectNodes("ReplayStep")!.Cast<XmlElement>())
         {
             var turnover = false;
@@ -56,6 +59,13 @@ internal class ZFLStatsAnalyzer(Replay replay)
             {
                 if (node.LocalName == "EventEndTurn")
                 {
+                    if (ballCarrier != -1 && lastTeamWithPossession == activeGamer)
+                    {
+                        Debug.Assert(replay.GetPlayer(ballCarrier).Team == lastTeamWithPossession);
+                        touchdownTurnCounter[lastTeamWithPossession]++;
+                        Debug.WriteLine($"Increasing touchdown turn counter for team {lastTeamWithPossession} to {touchdownTurnCounter[lastTeamWithPossession]}");
+                    }
+
                     turnover = node["Reason"]!.InnerText == "2";
                     activeGamer = node["NextPlayingGamer"]?.InnerText.ParseInt() ?? 0;
                     activePlayer = -1;
@@ -95,6 +105,9 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                 passingPlayer = -1;
                                 catchingPlayer = -1;
                                 ballCarrier = -1;
+                                Debug.WriteLine("Kickoff, resetting touchdown turn counters");
+                                lastTeamWithPossession = -1;
+                                touchdownTurnCounter = [1, 1];
                                 break;
                             case StepType.Activation:
                                 activePlayer = playerId;
@@ -342,6 +355,13 @@ internal class ZFLStatsAnalyzer(Replay replay)
                 {
                     var playerId = node["PlayerId"]!.InnerText.ParseInt();
                     this.GetStatsFor(playerId).TouchdownsScored += 1;
+
+                    Debug.Assert(replay.GetPlayer(playerId).Team == lastTeamWithPossession);
+                    Debug.Assert(activeGamer == lastTeamWithPossession);
+                    this.GetTeamStatsFor(activeGamer).TurnsPerTouchdown.Add(touchdownTurnCounter[activeGamer]);
+                    Debug.WriteLine($"Team {activeGamer} scored within {touchdownTurnCounter[activeGamer]} turns");
+                    touchdownTurnCounter = [1, 1];
+                    lastTeamWithPossession = -1;
                 }
             }
 
@@ -372,6 +392,15 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
                         ballCarrier = newCarrier;
                         Debug.WriteLine($"* New ball carrier {newCarrier}!");
+
+                        var newTeamWithPossession = replay.GetPlayer(newCarrier).Team;
+                        if (lastTeamWithPossession != -1 && lastTeamWithPossession != newTeamWithPossession)
+                        {
+                            Debug.WriteLine("New team in possession, resetting touchdown turn counters");
+                            touchdownTurnCounter = [1, 1];
+                        }
+
+                        lastTeamWithPossession = newTeamWithPossession;
                     }
                 }
             }

@@ -26,4 +26,6 @@ public class ZFLTeamStats(int id)
     public Dictionary<int, int> ArmorAndInjuryDice { get; } = new();
 
     public Dictionary<int, int> OtherDice { get; } = new();
+
+    public List<int> TurnsPerTouchdown {  get; } = new();
 }
