@@ -135,6 +135,11 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                 break;
                             case StepType.Referee:
                                 break;
+                            case StepType.ThrowTeamMate:
+                                // Apparently it's ThrowerId instead of PlayerId for this *one* thing
+                                Debug.Assert(playerId == -1);
+                                playerId = step["ThrowerId"]?.InnerText.ParseInt() ?? -1;
+                                break;
                         }
 
                         int lastDeadPlayerId = -1;
