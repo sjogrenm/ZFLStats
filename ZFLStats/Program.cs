@@ -36,7 +36,7 @@ public class Program
                 autoOutFile?.WriteLine(text);
             }
 
-            var properties = typeof(ZFLPlayerStats).GetProperties().Where(p => p.PropertyType == typeof(int));
+            var properties = typeof(ZFLPlayerStats).GetProperties().Where(p => p.PropertyType == typeof(int) || p.PropertyType == typeof(string));
 
             WriteToCsv($"{replay.HomeTeam.Name} vs {replay.VisitingTeam.Name}");
             WriteToCsv($" Fan attendance home: {analyzer.HomeTeamStats.Fans}");
