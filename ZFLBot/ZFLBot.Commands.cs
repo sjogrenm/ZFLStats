@@ -71,6 +71,14 @@ internal partial class ZFLBot
                             .AddOption("reason", ApplicationCommandOptionType.String, "The reason for the addition", isRequired: true))
                     .AddOption(
                         new SlashCommandOptionBuilder()
+                            .WithName("use-gridiron-cap")
+                            .WithType(ApplicationCommandOptionType.SubCommand)
+                            .WithDescription("Spends CAP invested with the Gridiron Guild")
+                            .AddOption("coach", ApplicationCommandOptionType.User, "The coach", isRequired: true)
+                            .AddOption("amount", ApplicationCommandOptionType.Integer, "The amount of CAP", isRequired: true)
+                            .AddOption("reason", ApplicationCommandOptionType.String, "The reason for the addition", isRequired: true))
+                    .AddOption(
+                        new SlashCommandOptionBuilder()
                             .WithName("reset-spend")
                             .WithType(ApplicationCommandOptionType.SubCommand)
                             .WithDescription("Resets this round's spending for a team")
@@ -100,6 +108,12 @@ internal partial class ZFLBot
                             .WithType(ApplicationCommandOptionType.SubCommand)
                             .AddOption("amount", ApplicationCommandOptionType.Integer, "The amount of CAP", isRequired: true)
                             .AddOption("reason", ApplicationCommandOptionType.String, "The reason for the spending", isRequired: true))
+                    .AddOption(
+                        new SlashCommandOptionBuilder()
+                            .WithName("gridiron")
+                            .WithDescription("Invest CAP with the Gridiron Guild")
+                            .WithType(ApplicationCommandOptionType.SubCommand)
+                            .AddOption("amount", ApplicationCommandOptionType.Integer, "The amount of CAP", isRequired: true))
                     .Build(),
                 this.UserCapCmd));
     }
@@ -164,12 +178,22 @@ internal partial class ZFLBot
                 break;
 
             case "spend":
+            {
                 var amountArg = cmd.GetOption("amount")!;
                 var reasonArg = cmd.GetOption("reason")!;
                 var amount = (long) amountArg.Value;
                 var reason = (string)reasonArg.Value;
                 await this.SpendCAP(arg, (int)amount, reason);
                 break;
+            }
+
+            case "gridiron":
+            {
+                var amountArg = cmd.GetOption("amount")!;
+                var amount = (long)amountArg.Value;
+                await this.GridironInvestment(arg, (int)amount);
+                break;
+            }
 
             default:
                 Log($"Unknown command /cap {cmd.Name}");
@@ -181,14 +205,15 @@ internal partial class ZFLBot
     {
         var guildId = arg.GuildId.GetValueOrDefault();
 
-        if (this.dataServices[guildId].TryGetTeam(arg.User.Id, out var teamInfo))
-        {
-            await arg.RespondAsync($"Your current balance is {teamInfo.CurrentWeeklyCAP} weekly allowance and {teamInfo.CurrentBonusCAP} bonus CAP", ephemeral: true);
-        }
-        else
+        if (!this.dataServices[guildId].TryGetTeam(arg.User.Id, out var teamInfo))
         {
             await arg.RespondAsync("You do not appear to have a ZFL team", ephemeral: true);
+            return;
         }
+        
+        await arg.RespondAsync(
+                $"Your current balance is {teamInfo.CurrentWeeklyCAP} weekly allowance and {teamInfo.CurrentBonusCAP} bonus CAP. You also have {teamInfo.GridironInvestment} CAP invested with the Gridiron Guild.",
+                ephemeral: true);
     }
 
     private async Task SpendCAP(SocketSlashCommand arg, int amount, string reason)
@@ -276,6 +301,18 @@ internal partial class ZFLBot
                 break;
             }
 
+            case "use-gridiron-cap":
+            {
+                var coachArg = cmd.GetOption("coach")!;
+                var amountArg = cmd.GetOption("amount")!;
+                var reasonArg = cmd.GetOption("reason")!;
+                var user = (SocketGuildUser)coachArg.Value;
+                var amount = (long)amountArg.Value;
+                var reason = (string)reasonArg.Value;
+                await this.UseGridironCAP(arg, user, (int)amount, reason);
+                break;
+            }
+
             case "reset-spend":
             {
                 var coachArg = cmd.GetOption("coach")!;
@@ -290,6 +327,28 @@ internal partial class ZFLBot
                 Log($"Unknown command /admin {cmd.Name}");
                 break;
         }
+    }
+
+    private async Task UseGridironCAP(SocketSlashCommand arg, SocketGuildUser user, int amount, string reason)
+    {
+        var guildId = arg.GuildId.GetValueOrDefault();
+
+        if (!this.dataServices[guildId].TryGetTeam(user.Id, out var teamInfo))
+        {
+            await arg.RespondAsync($"{user.GlobalName} has no ZFL team", ephemeral: true);
+            return;
+        }
+        
+        if (amount > teamInfo.GridironInvestment)
+        {
+            await arg.RespondAsync($"That's more than {user.GlobalName} has invested", ephemeral: true);
+            return;
+        }
+
+        await arg.RespondAsync($"Spending {amount} Gridiron Guild CAP for {user.GlobalName} ({teamInfo.TeamName})", ephemeral: true);
+        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) spent {amount} of Gridiron Guild CAP for {user.GlobalName} ({user.Id}) ({teamInfo.TeamName}): \"{reason}\"");
+        teamInfo = this.dataServices[guildId].UseGridironCAP(user.Id, amount);
+        await this.UpdateStatusMessage(guildId, user.Id, teamInfo);
     }
 
     private async Task AddTeam(SocketSlashCommand arg, SocketGuildUser user, string team, int div, int? allowance)
@@ -400,6 +459,40 @@ internal partial class ZFLBot
         }
     }
 
+    private async Task GridironInvestment(SocketSlashCommand arg, int amount)
+    {
+        var guildId = arg.GuildId.GetValueOrDefault();
+
+        if (amount <= 0)
+        {
+            await arg.RespondAsync("Cute, now how much do you really want to spend?", ephemeral: true);
+            return;
+        }
+
+        if (!this.dataServices[guildId].TryGetTeam(arg.User.Id, out var teamInfo))
+        {
+            await arg.RespondAsync("You do not appear to have a ZFL team", ephemeral: true);
+            return;
+        }
+
+        if (amount > 3)
+        {
+            await arg.RespondAsync("You can only invest up to 3 CAP per round", ephemeral: true);
+            return;
+        }
+
+        if (amount > teamInfo.CurrentCAP)
+        {
+            await arg.RespondAsync($"You only have {teamInfo.CurrentCAP} to spend", ephemeral: true);
+            return;
+        }
+
+        await arg.RespondAsync($"Spending {amount} CAP", ephemeral: true);
+        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) ({teamInfo.TeamName}) invested {amount} CAP with the Gridiron Guild");
+        teamInfo = this.dataServices[guildId].GridironInvestment(arg.User.Id, amount);
+        await this.UpdateStatusMessage(guildId, arg.User.Id, teamInfo);
+    }
+
     private async Task ResetSpentCAP(SocketSlashCommand arg, SocketGuildUser user, string reason)
     {
         var guildId = arg.GuildId.GetValueOrDefault();
@@ -475,7 +568,7 @@ internal partial class ZFLBot
     private static async Task UpdateStatusMessage(IUser? user, ulong discordUserId, RestUserMessage message, TeamInfo teamInfo)
     {
         var builder = new StringBuilder();
-        builder.Append($"{teamInfo.TeamName} ({user?.GlobalName ?? discordUserId.ToString()}) - {teamInfo.CurrentWeeklyCAP}+{teamInfo.CurrentBonusCAP} CAP remaining");
+        builder.Append($"{teamInfo.TeamName} ({user?.GlobalName ?? discordUserId.ToString()}) - {teamInfo.CurrentWeeklyCAP}+{teamInfo.CurrentBonusCAP} CAP remaining ({teamInfo.GridironInvestment} invested)");
         if (teamInfo.Carryover > 0)
         {
             builder.Append($"\n* {teamInfo.Carryover} CAP - Carryover");

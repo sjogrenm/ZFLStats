@@ -132,6 +132,44 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
+    public TeamInfo GridironInvestment(ulong discordUserId, int spend)
+    {
+        TeamInfo teamInfo;
+        lock (this.lck)
+        {
+            if (!this.teams.TryGetValue(discordUserId, out teamInfo))
+            {
+                return null;
+            }
+
+            teamInfo = teamInfo.WithGridironInvestment(spend);
+            this.teams[discordUserId] = teamInfo;
+            this.flushRequested = true;
+        }
+
+        return teamInfo;
+    }
+
+    /// <inheritdoc />
+    public TeamInfo UseGridironCAP(ulong discordUserId, int amount)
+    {
+        TeamInfo teamInfo;
+        lock (this.lck)
+        {
+            if (!this.teams.TryGetValue(discordUserId, out teamInfo))
+            {
+                return null;
+            }
+
+            teamInfo = teamInfo.WithGridironCAPSpent(amount);
+            this.teams[discordUserId] = teamInfo;
+            this.flushRequested = true;
+        }
+
+        return teamInfo;
+    }
+
+    /// <inheritdoc />
     public TeamInfo ResetSpentCAP(ulong discordUserId)
     {
         TeamInfo teamInfo;
@@ -302,13 +340,15 @@ internal class JsonDataService : IDataService, IDisposable
 
     private class SerializedTeamAction
     {
+        public int Type;
+
         public int CapDelta;
 
         public string Reason;
 
-        public static SerializedTeamAction FromTeamAction(TeamAction action) => new() { CapDelta = action.CAPDelta, Reason = action.Reason };
+        public static SerializedTeamAction FromTeamAction(TeamAction action) => new() { Type = (int)action.Type, CapDelta = action.CAPDelta, Reason = action.Reason };
 
-        public TeamAction ToTeamAction() => new(this.CapDelta, this.Reason);
+        public TeamAction ToTeamAction() => new((ActionType)this.Type, this.CapDelta, this.Reason);
     }
 
     private class SerializedTeamInfo
@@ -319,6 +359,7 @@ internal class JsonDataService : IDataService, IDisposable
             Division = teamInfo.Division,
             WeeklyAllowance = teamInfo.TotalWeeklyAllowance,
             Carryover = teamInfo.Carryover,
+            GridironInvestment = teamInfo.GridironInvestment,
             Actions = teamInfo.Actions.Select(SerializedTeamAction.FromTeamAction).ToArray(),
             StatusMessageId = teamInfo.StatusMessageId
         };
@@ -331,10 +372,12 @@ internal class JsonDataService : IDataService, IDisposable
 
         public int Carryover;
 
+        public int GridironInvestment;
+
         public SerializedTeamAction[] Actions;
 
         public ulong StatusMessageId;
 
-        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.Actions.Select(a => a.ToTeamAction()).ToList(), this.StatusMessageId);
+        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.GridironInvestment, this.Actions.Select(a => a.ToTeamAction()).ToList(), this.StatusMessageId);
     }
 }
