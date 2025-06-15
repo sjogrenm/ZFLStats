@@ -17,7 +17,7 @@ internal partial class ZFLBot
 
     private readonly List<string> obsoleteCommands = [];
 
-    private readonly DiscordSocketClient client = new();
+    private readonly DiscordSocketClient client = new(new DiscordSocketConfig { GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers });
 
     public ZFLBot(Dictionary<ulong, IDataService> dataServices)
     {
@@ -64,6 +64,11 @@ internal partial class ZFLBot
     private Task ClientReady()
     {
         _ = this.UpdateCommandsAsync();
+        foreach (var guild in this.client.Guilds)
+        {
+            _ = guild.DownloadUsersAsync();
+        }
+
         return Task.CompletedTask;
     }
 
