@@ -211,10 +211,15 @@ internal partial class ZFLBot
             await arg.RespondAsync("You do not appear to have a ZFL team", ephemeral: true);
             return;
         }
-        
-        await arg.RespondAsync(
-                $"Your current balance is {teamInfo.CurrentWeeklyCAP} weekly allowance and {teamInfo.CurrentBonusCAP} bonus CAP. You also have {teamInfo.GridironInvestment} CAP invested with the Gridiron Guild.",
-                ephemeral: true);
+
+        var text = $"Your current balance is {teamInfo.CurrentWeeklyCAP} weekly allowance and {teamInfo.CurrentBonusCAP} bonus CAP. You also have {teamInfo.GridironInvestment} CAP invested with the Gridiron Guild.";
+        if (teamInfo.Actions.Where(a => a.Type != ActionType.BonusCAP).ToList() is { Count : > 0 } actions)
+        {
+            text += "\nCAP spent this round:\n";
+            text += string.Join('\n', actions.Select(a => $"* {-a.CAPDelta} CAP - {a.Reason}"));
+        }
+
+        await arg.RespondAsync(text, ephemeral: true);
     }
 
     private async Task SpendCAP(SocketSlashCommand arg, int amount, string reason)
