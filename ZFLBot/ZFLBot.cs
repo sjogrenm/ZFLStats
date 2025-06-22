@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using System.Diagnostics;
+using Discord;
 using Discord.Net;
 using Discord.WebSocket;
 using Newtonsoft.Json;
@@ -24,6 +25,7 @@ internal partial class ZFLBot
         this.dataServices = dataServices;
         this.client.Log += Log;
         this.client.Ready += this.ClientReady;
+        this.client.ButtonExecuted += this.ButtonExecuted;
         this.client.SlashCommandExecuted += this.SlashCommandHandler;
 
         this.AddCommands();
@@ -67,6 +69,18 @@ internal partial class ZFLBot
         foreach (var guild in this.client.Guilds)
         {
             _ = guild.DownloadUsersAsync();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task ButtonExecuted(SocketMessageComponent arg)
+    {
+        if (arg.Data.CustomId.StartsWith("admin.rollover."))
+        {
+            var user = (SocketGuildUser)arg.User;
+            Debug.Assert(this.IsAdmin(user));
+            return this.CommitRollover(user, arg);
         }
 
         return Task.CompletedTask;

@@ -88,7 +88,8 @@ internal partial class ZFLBot
                         new SlashCommandOptionBuilder()
                             .WithName("rollover")
                             .WithType(ApplicationCommandOptionType.SubCommand)
-                            .WithDescription("Adds the weekly allowances to all teams and resets star player costs"))
+                            .WithDescription("Adds the weekly allowances to all teams")
+                            .AddOption("division", ApplicationCommandOptionType.String, "The division number (or all)", isRequired: true))
                     .Build(),
                 this.AdminCmd));
         this.commands.Add(
@@ -260,8 +261,12 @@ internal partial class ZFLBot
         switch (cmd.Name)
         {
             case "rollover":
-                await this.Rollover(arg);
+            {
+                var divArg = cmd.GetOption("division")!;
+                var div = (string) divArg.Value;
+                await this.Rollover(arg, div);
                 break;
+            }
 
             case "teams":
                 await this.ListTeams(arg);
@@ -509,16 +514,49 @@ internal partial class ZFLBot
         await this.UpdateStatusMessage(guildId, user.Id, teamInfo);
     }
 
-    private async Task Rollover(SocketSlashCommand arg)
+    private async Task Rollover(SocketSlashCommand arg, string div)
     {
-        var guildId = arg.GuildId.GetValueOrDefault();
-        await arg.RespondAsync("Rollover in progress!", ephemeral: true);
-        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) initiated round rollover");
+        var divNum = -1;
+        if (div != "all" && (!int.TryParse(div, out divNum) || divNum < 1 || divNum > 3))
+        {
+            await arg.RespondAsync("Invalid division number", ephemeral: true);
+            return;
+        }
+
+        var divMessage = div == "all" ? "all divisions" : $"division {divNum}";
+        var suffix = div == "all" ? "all" : divNum.ToString();
+
+        await arg.RespondAsync(
+            $"Initiate rollover of {divMessage}?",
+            components: new ComponentBuilder().WithButton("Confirm", $"admin.rollover.{suffix}").Build(),
+            ephemeral: true);
+    }
+
+    private async Task CommitRollover(SocketGuildUser admin, SocketMessageComponent component)
+    {
+        // Have to defer before deleting the message
+        await component.DeferAsync(ephemeral: true);
+        await component.DeleteOriginalResponseAsync();
+
+        var div = component.Data.CustomId.Split('.')[2];
+        int.TryParse(div, out var divNum);
+        Debug.Assert(div == "all" || (divNum >= 1 && divNum <= 3));
+
+        var divMessage = div == "all" ? "all divisions" : $"division {divNum}";
+
+        var guildId = admin.Guild.Id;
+        await this.AuditLog(guildId, $"{admin.GlobalName} ({admin.Id}) initiated round rollover for {divMessage}");
+
         SocketTextChannel? statusChannel = null;
         int currentDiv = -1;
         foreach (var (discordUserId, teamInfo) in this.GetTeamsSortedByDivision(guildId))
         {
-            var user = this.GetUser(arg.GuildId.GetValueOrDefault(), discordUserId);
+            if (div != "all" && teamInfo.Division != divNum)
+            {
+                continue;
+            }
+
+            var user = this.GetUser(guildId, discordUserId);
             if (teamInfo.Division != currentDiv)
             {
                 currentDiv = teamInfo.Division;
