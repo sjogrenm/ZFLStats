@@ -125,7 +125,7 @@ internal partial class ZFLBot
 
         if (arg.User is not SocketGuildUser guildUser || !this.IsAdmin(guildUser))
         {
-            await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) tried to use an admin command");
+            await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) tried to use an admin command");
             await arg.RespondAsync("You are not an admin", ephemeral: true);
             return;
         }
@@ -139,7 +139,7 @@ internal partial class ZFLBot
                 var channel = (SocketTextChannel)cmd.Options.First().Value;
                 await arg.RespondAsync($"Setting audit log channel to {channel.Name}", ephemeral: true);
                 this.SetAuditChannel(guildId, channel.Id);
-                await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) set {channel.Name} as audit log channel");
+                await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) set {channel.Name} as audit log channel");
                 break;
             }
 
@@ -149,7 +149,7 @@ internal partial class ZFLBot
                 var channel = (SocketTextChannel)cmd.GetOption("channel").Value;
                 await arg.RespondAsync($"Setting status channel for division {div} to {channel.Name}", ephemeral: true);
                 this.SetStatusChannel(guildId, div, channel.Id);
-                await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) set {channel.Name} as status channel for division {div}");
+                await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) set {channel.Name} as status channel for division {div}");
                 break;
             }
 
@@ -158,7 +158,7 @@ internal partial class ZFLBot
                 var role = (SocketRole)cmd.GetOption("role").Value;
                 await arg.RespondAsync($"Setting admin role to {role.Name}", ephemeral: true);
                 this.SetAdminRole(guildId, role.Id);
-                await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) set {role.Name} as admin role");
+                await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) set {role.Name} as admin role");
                 break;
             }
 
@@ -245,7 +245,7 @@ internal partial class ZFLBot
         }
 
         await arg.RespondAsync($"Spending {amount} CAP", ephemeral: true);
-        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) ({teamInfo.TeamName}) spent {amount} CAP: \"{reason}\"");
+        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) ({teamInfo.TeamName}) spent {amount} CAP: \"{reason}\"");
         teamInfo = this.dataServices[guildId].SpendCAP(arg.User.Id, amount, reason);
         await this.UpdateStatusMessage(guildId, arg.User.Id, teamInfo);
     }
@@ -256,7 +256,7 @@ internal partial class ZFLBot
 
         if (arg.User is not SocketGuildUser guildUser || !this.IsAdmin(guildUser))
         {
-            await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) tried to use an admin command");
+            await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) tried to use an admin command");
             await arg.RespondAsync("You are not an admin", ephemeral: true);
             return;
         }
@@ -345,18 +345,18 @@ internal partial class ZFLBot
 
         if (!this.dataServices[guildId].TryGetTeam(user.Id, out var teamInfo))
         {
-            await arg.RespondAsync($"{user.GlobalName} has no ZFL team", ephemeral: true);
+            await arg.RespondAsync($"{user.Username} has no ZFL team", ephemeral: true);
             return;
         }
         
         if (amount > teamInfo.GridironInvestment)
         {
-            await arg.RespondAsync($"That's more than {user.GlobalName} has invested", ephemeral: true);
+            await arg.RespondAsync($"That's more than {user.Username} has invested", ephemeral: true);
             return;
         }
 
-        await arg.RespondAsync($"Spending {amount} Gridiron Guild CAP for {user.GlobalName} ({teamInfo.TeamName})", ephemeral: true);
-        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) spent {amount} of Gridiron Guild CAP for {user.GlobalName} ({user.Id}) ({teamInfo.TeamName}): \"{reason}\"");
+        await arg.RespondAsync($"Spending {amount} Gridiron Guild CAP for {user.Username} ({teamInfo.TeamName})", ephemeral: true);
+        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) spent {amount} of Gridiron Guild CAP for {user.Username} ({user.Id}) ({teamInfo.TeamName}): \"{reason}\"");
         teamInfo = this.dataServices[guildId].UseGridironCAP(user.Id, amount);
         await this.UpdateStatusMessage(guildId, user.Id, teamInfo);
     }
@@ -373,13 +373,13 @@ internal partial class ZFLBot
 
         if (this.dataServices[guildId].TryGetTeam(user.Id, out var teamInfo))
         {
-            await arg.RespondAsync($"{user.GlobalName} already has a ZFL team", ephemeral: true);
+            await arg.RespondAsync($"{user.Username} already has a ZFL team", ephemeral: true);
             return;
         }
 
-        await arg.RespondAsync($"Adding team for {user.GlobalName}", ephemeral: true);
+        await arg.RespondAsync($"Adding team for {user.Username}", ephemeral: true);
         teamInfo = TeamInfo.Create(team, div, allowance ?? GetDefaultAllowance(div));
-        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) added team for {user.GlobalName} ({user.Id}) ({teamInfo.TeamName})");
+        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) added team for {user.Username} ({user.Id}) ({teamInfo.TeamName})");
         this.dataServices[guildId].AddTeam(user.Id, teamInfo);
     }
 
@@ -389,12 +389,12 @@ internal partial class ZFLBot
 
         if (!this.dataServices[guildId].TryGetTeam(user.Id, out var teamInfo))
         {
-            await arg.RespondAsync($"{user.GlobalName} has no ZFL team", ephemeral: true);
+            await arg.RespondAsync($"{user.Username} has no ZFL team", ephemeral: true);
             return;
         }
 
-        await arg.RespondAsync($"Removing {user.GlobalName}'s team {teamInfo.TeamName}", ephemeral: true);
-        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) removed team of {user.GlobalName} ({user.Id}) ({teamInfo.TeamName})");
+        await arg.RespondAsync($"Removing {user.Username}'s team {teamInfo.TeamName}", ephemeral: true);
+        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) removed team of {user.Username} ({user.Id}) ({teamInfo.TeamName})");
         this.dataServices[guildId].RemoveTeam(user.Id);
     }
 
@@ -409,7 +409,7 @@ internal partial class ZFLBot
         foreach (var (discordUserId, teamInfo) in teams)
         {
             var user = this.GetUser(guildId, discordUserId);
-            msg.AppendFormat("{0,-10} {1,-20} {2,3} {3,6} {4,5}\n", user?.GlobalName ?? discordUserId.ToString(), teamInfo.TeamName, teamInfo.Division, teamInfo.CurrentWeeklyCAP, teamInfo.CurrentBonusCAP);
+            msg.AppendFormat("{0,-10} {1,-20} {2,3} {3,6} {4,5}\n", user?.Username ?? discordUserId.ToString(), teamInfo.TeamName, teamInfo.Division, teamInfo.CurrentWeeklyCAP, teamInfo.CurrentBonusCAP);
         }
         msg.Append("```");
         await arg.RespondAsync(msg.ToString(), ephemeral: true);
@@ -445,7 +445,7 @@ internal partial class ZFLBot
 
         if (!this.dataServices[guildId].TryGetTeam(user.Id, out var teamInfo))
         {
-            await arg.RespondAsync($"{user.GlobalName} has no ZFL team", ephemeral: true);
+            await arg.RespondAsync($"{user.Username} has no ZFL team", ephemeral: true);
             return;
         }
 
@@ -455,8 +455,8 @@ internal partial class ZFLBot
             return;
         }
 
-        await arg.RespondAsync($"Giving {user.GlobalName} ({teamInfo.TeamName}) {amount} bonus CAP", ephemeral: true);
-        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) gave {user.GlobalName} ({user.Id}) ({teamInfo.TeamName}) {amount} bonus CAP: \"{reason}\"");
+        await arg.RespondAsync($"Giving {user.Username} ({teamInfo.TeamName}) {amount} bonus CAP", ephemeral: true);
+        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) gave {user.Username} ({user.Id}) ({teamInfo.TeamName}) {amount} bonus CAP: \"{reason}\"");
         teamInfo = this.dataServices[guildId].AddBonusCAP(user.Id, amount, reason);
         await this.UpdateStatusMessage(guildId, user.Id, teamInfo);
         try
@@ -465,7 +465,7 @@ internal partial class ZFLBot
         }
         catch (Discord.Net.HttpException e) when (e.DiscordCode == DiscordErrorCode.CannotSendMessageToUser)
         {
-            Log($"Could not send message to user {user.GlobalName} ({user.Id})");
+            Log($"Could not send message to user {user.Username} ({user.Id})");
         }
     }
 
@@ -498,7 +498,7 @@ internal partial class ZFLBot
         }
 
         await arg.RespondAsync($"Spending {amount} CAP", ephemeral: true);
-        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) ({teamInfo.TeamName}) invested {amount} CAP with the Gridiron Guild");
+        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) ({teamInfo.TeamName}) invested {amount} CAP with the Gridiron Guild");
         teamInfo = this.dataServices[guildId].GridironInvestment(arg.User.Id, amount);
         await this.UpdateStatusMessage(guildId, arg.User.Id, teamInfo);
     }
@@ -509,12 +509,12 @@ internal partial class ZFLBot
 
         if (!this.dataServices[guildId].TryGetTeam(user.Id, out var teamInfo))
         {
-            await arg.RespondAsync($"{user.GlobalName} has no ZFL team", ephemeral: true);
+            await arg.RespondAsync($"{user.Username} has no ZFL team", ephemeral: true);
             return;
         }
 
-        await arg.RespondAsync($"Resetting CAP spent this round for {user.GlobalName} ({teamInfo.TeamName})", ephemeral: true);
-        await this.AuditLog(guildId, $"{arg.User.GlobalName} ({arg.User.Id}) reset CAP spent for {user.GlobalName} ({user.Id}) ({teamInfo.TeamName}): \"{reason}\"");
+        await arg.RespondAsync($"Resetting CAP spent this round for {user.Username} ({teamInfo.TeamName})", ephemeral: true);
+        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) reset CAP spent for {user.Username} ({user.Id}) ({teamInfo.TeamName}): \"{reason}\"");
         teamInfo = this.dataServices[guildId].ResetSpentCAP(user.Id);
         await this.UpdateStatusMessage(guildId, user.Id, teamInfo);
     }
@@ -550,7 +550,7 @@ internal partial class ZFLBot
         var divMessage = div == "all" ? "all divisions" : $"division {divNum}";
 
         var guildId = admin.Guild.Id;
-        await this.AuditLog(guildId, $"{admin.GlobalName} ({admin.Id}) initiated round rollover for {divMessage}");
+        await this.AuditLog(guildId, $"{admin.Username} ({admin.Id}) initiated round rollover for {divMessage}");
 
         SocketTextChannel? statusChannel = null;
         int currentDiv = -1;
@@ -575,7 +575,7 @@ internal partial class ZFLBot
             RestUserMessage? statusMessage = null;
             if (statusChannel != null)
             {
-                statusMessage = await statusChannel.SendMessageAsync($"{teamInfo.TeamName} ({user?.GlobalName ?? discordUserId.ToString()}) - rollover...");
+                statusMessage = await statusChannel.SendMessageAsync($"{teamInfo.TeamName} ({user?.Username ?? discordUserId.ToString()}) - rollover...");
             }
 
             var newTeamInfo = this.dataServices[guildId].RolloverTeam(discordUserId, statusMessage?.Id ?? 0);
@@ -611,7 +611,7 @@ internal partial class ZFLBot
     private static async Task UpdateStatusMessage(IUser? user, ulong discordUserId, RestUserMessage message, TeamInfo teamInfo)
     {
         var builder = new StringBuilder();
-        builder.Append($"{teamInfo.TeamName} ({user?.GlobalName ?? discordUserId.ToString()}) - {teamInfo.CurrentWeeklyCAP}+{teamInfo.CurrentBonusCAP} CAP remaining ({teamInfo.GridironInvestment} invested)");
+        builder.Append($"{teamInfo.TeamName} ({user?.Username ?? discordUserId.ToString()}) - {teamInfo.CurrentWeeklyCAP}+{teamInfo.CurrentBonusCAP} CAP remaining ({teamInfo.GridironInvestment} invested)");
         if (teamInfo.Carryover > 0)
         {
             builder.Append($"\n* {teamInfo.Carryover} CAP - Carryover");
