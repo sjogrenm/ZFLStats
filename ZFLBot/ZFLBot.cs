@@ -16,8 +16,6 @@ internal partial class ZFLBot
 
     private readonly Dictionary<string, (SlashCommandProperties Properties, Func<SocketSlashCommand, Task> Handler)> commands = [];
 
-    private readonly List<string> obsoleteCommands = [];
-
     private readonly DiscordSocketClient client = new(new DiscordSocketConfig { GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers });
 
     public ZFLBot(Dictionary<ulong, IDataService> dataServices)
@@ -90,14 +88,10 @@ internal partial class ZFLBot
     {
         foreach (var guildId in this.dataServices.Keys)
         {
-            var oldCommands = (await this.client.Rest.GetGuildApplicationCommands(guildId)).ToDictionary(cmd => cmd.Name);
-
-            foreach (var name in this.obsoleteCommands)
+            var oldCommands = (await this.client.Rest.GetGuildApplicationCommands(guildId)).ToList();
+            foreach (var cmd in oldCommands)
             {
-                if (oldCommands.TryGetValue(name, out var cmd))
-                {
-                    await cmd.DeleteAsync();
-                }
+                await cmd.DeleteAsync();
             }
 
             foreach (var cmd in this.commands.Values)

@@ -93,30 +93,30 @@ internal partial class ZFLBot
                     .Build(),
                 this.AdminCmd));
         this.commands.Add(
-            "cap",
+            "team",
             (new SlashCommandBuilder()
-                    .WithName("cap")
-                    .WithDescription("Tools for managing CAP")
+                    .WithName("team")
+                    .WithDescription("Tools for managing your ZFL team")
                     .AddOption(
                         new SlashCommandOptionBuilder()
-                            .WithName("balance")
+                            .WithName("status")
                             .WithDescription("Checks your current balance of CAP (weekly and bonus)")
                             .WithType(ApplicationCommandOptionType.SubCommand))
                     .AddOption(
                         new SlashCommandOptionBuilder()
-                            .WithName("spend")
+                            .WithName("spend-cap")
                             .WithDescription("Spends CAP on an action")
                             .WithType(ApplicationCommandOptionType.SubCommand)
                             .AddOption("amount", ApplicationCommandOptionType.Integer, "The amount of CAP", isRequired: true)
                             .AddOption("reason", ApplicationCommandOptionType.String, "The reason for the spending", isRequired: true))
                     .AddOption(
                         new SlashCommandOptionBuilder()
-                            .WithName("gridiron")
+                            .WithName("gridiron-cap")
                             .WithDescription("Invest CAP with the Gridiron Guild")
                             .WithType(ApplicationCommandOptionType.SubCommand)
                             .AddOption("amount", ApplicationCommandOptionType.Integer, "The amount of CAP", isRequired: true))
                     .Build(),
-                this.UserCapCmd));
+                this.TeamCmd));
     }
 
     private async Task SetupCmd(SocketSlashCommand arg)
@@ -168,17 +168,17 @@ internal partial class ZFLBot
         }
     }
 
-    private async Task UserCapCmd(SocketSlashCommand arg)
+    private async Task TeamCmd(SocketSlashCommand arg)
     {
         Debug.Assert(arg.Data.Options.Count == 1);
         var cmd = arg.Data.Options.First();
         switch (cmd.Name)
         {
-            case "balance":
-                await this.CheckBalance(arg);
+            case "status":
+                await this.TeamStatus(arg);
                 break;
 
-            case "spend":
+            case "spend-cap":
             {
                 var amountArg = cmd.GetOption("amount")!;
                 var reasonArg = cmd.GetOption("reason")!;
@@ -188,7 +188,7 @@ internal partial class ZFLBot
                 break;
             }
 
-            case "gridiron":
+            case "gridiron-cap":
             {
                 var amountArg = cmd.GetOption("amount")!;
                 var amount = (long)amountArg.Value;
@@ -202,7 +202,7 @@ internal partial class ZFLBot
         }
     }
 
-    private async Task CheckBalance(SocketSlashCommand arg)
+    private async Task TeamStatus(SocketSlashCommand arg)
     {
         var guildId = arg.GuildId.GetValueOrDefault();
 
