@@ -429,8 +429,6 @@ internal class JsonDataService : IDataService, IDisposable
         public int Division;
 
         public ulong StatusChannelId;
-
-        public ulong TeamHubCategory;
     }
 
     private class SerializedUserAndTeamInfo
