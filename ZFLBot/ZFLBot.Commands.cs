@@ -3,7 +3,6 @@ using System.Text;
 using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
-using Newtonsoft.Json;
 
 namespace ZFLBot;
 
@@ -540,10 +539,12 @@ internal partial class ZFLBot
             return;
         }
 
+        await DismissMessage(arg);
+
         var divMessage = div == "all" ? "all divisions" : $"division {divNum}";
         var suffix = div == "all" ? "all" : divNum.ToString();
 
-        await arg.RespondAsync(
+        await arg.FollowupAsync(
             $"Initiate rollover of {divMessage}?",
             components: new ComponentBuilder().WithButton("Confirm", $"admin.rollover.{suffix}").Build(),
             ephemeral: true);
@@ -551,10 +552,6 @@ internal partial class ZFLBot
 
     private async Task CommitRollover(SocketGuildUser admin, SocketMessageComponent component)
     {
-        // Have to defer before deleting the message
-        await component.DeferAsync(ephemeral: true);
-        await component.DeleteOriginalResponseAsync();
-
         var div = component.Data.CustomId.Split('.')[2];
         int.TryParse(div, out var divNum);
         Debug.Assert(div == "all" || (divNum >= 1 && divNum <= 3));

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using Discord;
@@ -14,18 +15,13 @@ internal partial class ZFLBot
     this.client.SelectMenuExecuted += this.AdminMenuHandler;
   }
 
-  private async Task DismissMessage(SocketInteraction component){
-    await component.DeferAsync(true);
-    await component.DeleteOriginalResponseAsync();
-  }
-
   private (string action, string[] ids) ParseIdFromAction(string CustomId){
     string pattern = @"([^\(\)]+)\(?([^\(\)]+)?\)?";
     Regex r = new Regex(pattern);
     Match m = r.Match(CustomId);
     string action = m.Groups[1].Value;
     string[] ids = m.Groups.Count > 2 ? m.Groups[2].Value.Split(';') : [];
-    Console.WriteLine($"Input: {CustomId}, Action: {action}, Ids: {JsonConvert.SerializeObject(ids)}");
+    Debug.WriteLine($"Input: {CustomId}, Action: {action}, Ids: {JsonConvert.SerializeObject(ids)}");
     return (action, ids);
   }
 
@@ -84,7 +80,7 @@ internal partial class ZFLBot
   }
 
   private async Task AdminMenuModalHandler(SocketModal modal) {
-    Console.WriteLine(JsonConvert.SerializeObject(modal.Data));
+    Debug.WriteLine(JsonConvert.SerializeObject(modal.Data));
     (string action, string[] ids) = ParseIdFromAction(modal.Data.CustomId);
     IReadOnlyCollection<SocketMessageComponentData> components = modal.Data.Components;
     SocketMessageComponentData title = components.GetById("demand_title");
@@ -280,7 +276,7 @@ internal partial class ZFLBot
     await DismissMessage(component);
     StringBuilder sb = new();
     string coachId = ((SocketMessageComponent)component).Data.Values?.FirstOrDefault() ?? id;
-    Console.WriteLine(JsonConvert.SerializeObject(((SocketMessageComponent)component).Data.Values));
+    Debug.WriteLine(JsonConvert.SerializeObject(((SocketMessageComponent)component).Data.Values));
     sb.AppendLine($"# Manage Team");
     await component.FollowupAsync(sb.ToString(), ephemeral: true, components: new ComponentBuilder()
         .AddRow(new ActionRowBuilder()

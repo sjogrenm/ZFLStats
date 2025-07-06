@@ -159,4 +159,11 @@ internal partial class ZFLBot
         await this.client.LoginAsync(TokenType.Bot, token);
         await this.client.StartAsync();
     }
+
+    private static async Task DismissMessage(SocketInteraction component)
+    {
+        // Have to defer before deleting the message
+        await component.DeferAsync(true);
+        await component.DeleteOriginalResponseAsync();
+    }
 }

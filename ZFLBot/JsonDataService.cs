@@ -79,7 +79,7 @@ internal class JsonDataService : IDataService, IDisposable
         {
             if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
             {
-              return null;
+                return null;
             }
 
             Demand demand = Demand.Create(title, description, deadline, source, "", true, false);
@@ -96,7 +96,7 @@ internal class JsonDataService : IDataService, IDisposable
         {
             if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
             {
-              return null;
+                return null;
             }
 
             Demand oldDemand = teamInfo.Demands[demandId];
@@ -115,8 +115,8 @@ internal class JsonDataService : IDataService, IDisposable
         {
             if (this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
             {
-              teamInfo.Demands.RemoveAt(demandId);
-              this.flushRequested = true;
+                teamInfo.Demands.RemoveAt(demandId);
+                this.flushRequested = true;
             }
         }
     }
@@ -128,7 +128,7 @@ internal class JsonDataService : IDataService, IDisposable
         {
             if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
             {
-              return null;
+                return null;
             }
 
             Demand oldDemand = teamInfo.Demands[demandId];
@@ -147,7 +147,7 @@ internal class JsonDataService : IDataService, IDisposable
         {
             if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
             {
-              return null;
+                return null;
             }
 
             Demand oldDemand = teamInfo.Demands[demandId];
@@ -160,12 +160,13 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
-    public Demand[] GetDemands(ulong discordUserId) {
+    public Demand[] GetDemands(ulong discordUserId)
+    {
         lock (this.lck)
         {
             if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
             {
-              return null;
+                return null;
             }
 
             return teamInfo.Demands.ToArray();
@@ -453,31 +454,32 @@ internal class JsonDataService : IDataService, IDisposable
 
     private class SerializedDemand
     {
-      public string Title;
+        public string Title;
 
-      public string Description;
+        public string Description;
 
-      public string Deadline;
+        public string Deadline;
 
-      public string Progress;
+        public string Progress;
 
-      public string Source;
+        public string Source;
 
-      public bool Active;
+        public bool Active;
 
-      public bool Success;
+        public bool Success;
 
-      public static SerializedDemand FromDemand(Demand demand) => new() { 
-        Title = demand.Title, 
-        Description = demand.Description, 
-        Deadline = demand.Deadline, 
-        Progress = demand.Progress, 
-        Source = demand.Source,
-        Active = demand.IsActive, 
-        Success = demand.WasSuccessful 
-      };
+        public static SerializedDemand FromDemand(Demand demand) => new()
+        {
+            Title = demand.Title,
+            Description = demand.Description,
+            Deadline = demand.Deadline,
+            Progress = demand.Progress,
+            Source = demand.Source,
+            Active = demand.IsActive,
+            Success = demand.WasSuccessful
+        };
 
-      public Demand ToDemand() => new(this.Title, this.Description, this.Deadline, this.Progress, this.Source, this.Active, this.Success);
+        public Demand ToDemand() => new(this.Title, this.Description, this.Deadline, this.Progress, this.Source, this.Active, this.Success);
     }
 
     private class SerializedTeamInfo
