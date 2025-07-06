@@ -27,6 +27,8 @@ internal partial class ZFLBot
 
   private async Task AdminMenuHandler(SocketMessageComponent component){
     (string action, string[] ids) = ParseIdFromAction(component.Data.CustomId);
+    var guildId = component.GuildId.Value;
+    var admin = component.User;
     switch (action)
     {
       case "open-menu":
@@ -54,9 +56,14 @@ internal partial class ZFLBot
         await DemandSelectionMessage(component, ids.FirstOrDefault(), DemandOperation.OPEN);
         break;
       case "open-demand-selection":
-        dataServices[component.GuildId.Value].OpenDemand(Convert.ToUInt64(ids.FirstOrDefault()), Convert.ToInt32(component.Data.Value));
-        await ManageTeamDemandMessage(component, ids.FirstOrDefault());
-        break;
+      {
+          var userId = Convert.ToUInt64(ids.FirstOrDefault());
+          var user = this.GetUser(guildId, userId);
+          await this.AuditLog(guildId, $"{admin.Username} ({admin.Id}) opened demand for {user?.Username} ({user?.Id})");
+          dataServices[guildId].OpenDemand(userId, Convert.ToInt32(component.Data.Value));
+          await ManageTeamDemandMessage(component, ids.FirstOrDefault());
+          break;
+      }
       case "close-demand":
         await DemandSelectionMessage(component, ids.FirstOrDefault(), DemandOperation.CLOSE);
         break;
@@ -67,9 +74,14 @@ internal partial class ZFLBot
         await DemandSelectionMessage(component, ids.FirstOrDefault(), DemandOperation.REMOVE);
         break;
       case "remove-demand-selection":
-        dataServices[component.GuildId.Value].RemoveDemand(Convert.ToUInt64(ids.FirstOrDefault()), Convert.ToInt32(component.Data.Value));
-        await ManageTeamDemandMessage(component, ids.FirstOrDefault());
-        break;
+      {
+          var userId = Convert.ToUInt64(ids.FirstOrDefault());
+          var user = this.GetUser(guildId, userId);
+          await this.AuditLog(guildId, $"{admin.Username} ({admin.Id}) removed demand for {user?.Username} ({user?.Id})");
+          dataServices[guildId].RemoveDemand(userId, Convert.ToInt32(component.Data.Value));
+          await ManageTeamDemandMessage(component, ids.FirstOrDefault());
+          break;
+      }
       case "new-team":
         await NewTeamMessage(component);
         break;
@@ -82,6 +94,8 @@ internal partial class ZFLBot
   private async Task AdminMenuModalHandler(SocketModal modal) {
     Debug.WriteLine(JsonConvert.SerializeObject(modal.Data));
     (string action, string[] ids) = ParseIdFromAction(modal.Data.CustomId);
+    var guildId = modal.GuildId.Value;
+    var admin = modal.User;
     IReadOnlyCollection<SocketMessageComponentData> components = modal.Data.Components;
     SocketMessageComponentData title = components.GetById("demand_title");
     SocketMessageComponentData deadline = components.GetById("demand_deadline");
@@ -94,17 +108,32 @@ internal partial class ZFLBot
         await ManageTeamsMessage(modal);
         break;
       case "new-demand-modal":
-        dataServices[modal.GuildId.Value].AddDemand(Convert.ToUInt64(ids.FirstOrDefault()), title.Value, description.Value, deadline.Value, source.Value);
-        await ManageTeamDemandMessage(modal, ids.FirstOrDefault());
-        break;
+      {
+          var userId = Convert.ToUInt64(ids.FirstOrDefault());
+          var user = this.GetUser(guildId, userId);
+          await this.AuditLog(guildId, $"{admin.Username} ({admin.Id}) added demand for {user?.Username} ({user?.Id})");
+          dataServices[modal.GuildId.Value].AddDemand(userId, title.Value, description.Value, deadline.Value, source.Value);
+          await ManageTeamDemandMessage(modal, ids.FirstOrDefault());
+          break;
+      }
       case "edit-demand-modal":
-        dataServices[modal.GuildId.Value].EditDemand(Convert.ToUInt64(ids.FirstOrDefault()), Convert.ToInt32(ids.LastOrDefault()), title.Value, description.Value, deadline.Value, source.Value, progress.Value);
-        await ManageTeamDemandMessage(modal, ids.FirstOrDefault());
-        break;
+      {
+          var userId = Convert.ToUInt64(ids.FirstOrDefault());
+          var user = this.GetUser(guildId, userId);
+          await this.AuditLog(guildId, $"{admin.Username} ({admin.Id}) edited demand for {user?.Username} ({user?.Id})");
+          dataServices[modal.GuildId.Value].EditDemand(userId, Convert.ToInt32(ids.LastOrDefault()), title.Value, description.Value, deadline.Value, source.Value, progress.Value);
+          await ManageTeamDemandMessage(modal, ids.FirstOrDefault());
+          break;
+      }
       case "close-demand-modal":
-        dataServices[modal.GuildId.Value].CloseDemand(Convert.ToUInt64(ids.FirstOrDefault()), Convert.ToInt32(ids.LastOrDefault()), bool.Parse(success.Value));
-        await ManageTeamDemandMessage(modal, ids.FirstOrDefault());
-        break;
+      {
+          var userId = Convert.ToUInt64(ids.FirstOrDefault());
+          var user = this.GetUser(guildId, userId);
+          await this.AuditLog(guildId, $"{admin.Username} ({admin.Id}) closed demand for {user?.Username} ({user?.Id})");
+          dataServices[modal.GuildId.Value].CloseDemand(userId, Convert.ToInt32(ids.LastOrDefault()), bool.Parse(success.Value));
+          await ManageTeamDemandMessage(modal, ids.FirstOrDefault());
+          break;
+      }
     }
   }
 
