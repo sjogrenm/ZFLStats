@@ -27,6 +27,7 @@ internal partial class ZFLBot
         this.client.SlashCommandExecuted += this.SlashCommandHandler;
 
         this.AddCommands();
+        this.SetupMenuHandlers();
     }
 
     private SocketGuild? GetGuild(ulong id) => this.client.Guilds.FirstOrDefault(g => g.Id == id);

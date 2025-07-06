@@ -3,6 +3,7 @@ using System.Text;
 using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
+using Newtonsoft.Json;
 
 namespace ZFLBot;
 
@@ -90,6 +91,11 @@ internal partial class ZFLBot
                             .WithType(ApplicationCommandOptionType.SubCommand)
                             .WithDescription("Adds the weekly allowances to all teams")
                             .AddOption("division", ApplicationCommandOptionType.String, "The division number (or all)", isRequired: true))
+                    .AddOption(
+                        new SlashCommandOptionBuilder()
+                            .WithName("menu")
+                            .WithType(ApplicationCommandOptionType.SubCommand)
+                            .WithDescription("Open admin menu"))
                     .Build(),
                 this.AdminCmd));
         this.commands.Add(
@@ -276,6 +282,12 @@ internal partial class ZFLBot
             case "teams":
                 await this.ListTeams(arg);
                 break;
+
+            case "menu":
+            {
+                await this.OpenMenu(arg);
+                break;
+            }
 
             case "add-team":
             {

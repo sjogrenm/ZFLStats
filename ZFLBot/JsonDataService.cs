@@ -73,6 +73,106 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
+    public Demand AddDemand(ulong discordUserId, string title, string description, string deadline, string source)
+    {
+        lock (this.lck)
+        {
+            if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
+            {
+              return null;
+            }
+
+            Demand demand = Demand.Create(title, description, deadline, source, "", true, false);
+            teamInfo.Demands.Add(demand);
+            this.flushRequested = true;
+            return demand;
+        }
+    }
+
+    /// <inheritdoc />
+    public Demand EditDemand(ulong discordUserId, int demandId, string title, string description, string deadline, string source, string progress)
+    {
+        lock (this.lck)
+        {
+            if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
+            {
+              return null;
+            }
+
+            Demand oldDemand = teamInfo.Demands[demandId];
+            Demand demand = Demand.Create(title, description, deadline, source, progress, oldDemand.IsActive, oldDemand.WasSuccessful);
+            teamInfo.Demands.RemoveAt(demandId);
+            teamInfo.Demands.Add(demand);
+            this.flushRequested = true;
+            return demand;
+        }
+    }
+
+    /// <inheritdoc />
+    public void RemoveDemand(ulong discordUserId, int demandId)
+    {
+        lock (this.lck)
+        {
+            if (this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
+            {
+              teamInfo.Demands.RemoveAt(demandId);
+              this.flushRequested = true;
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public Demand CloseDemand(ulong discordUserId, int demandId, bool wasSuccessful)
+    {
+        lock (this.lck)
+        {
+            if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
+            {
+              return null;
+            }
+
+            Demand oldDemand = teamInfo.Demands[demandId];
+            Demand demand = Demand.Create(oldDemand.Title, oldDemand.Description, oldDemand.Deadline, oldDemand.Source, oldDemand.Progress, false, wasSuccessful);
+            teamInfo.Demands.RemoveAt(demandId);
+            teamInfo.Demands.Add(demand);
+            this.flushRequested = true;
+            return demand;
+        }
+    }
+
+    /// <inheritdoc />
+    public Demand OpenDemand(ulong discordUserId, int demandId)
+    {
+        lock (this.lck)
+        {
+            if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
+            {
+              return null;
+            }
+
+            Demand oldDemand = teamInfo.Demands[demandId];
+            Demand demand = Demand.Create(oldDemand.Title, oldDemand.Description, oldDemand.Deadline, oldDemand.Source, oldDemand.Progress, true, oldDemand.WasSuccessful);
+            teamInfo.Demands.RemoveAt(demandId);
+            teamInfo.Demands.Add(demand);
+            this.flushRequested = true;
+            return demand;
+        }
+    }
+
+    /// <inheritdoc />
+    public Demand[] GetDemands(ulong discordUserId) {
+        lock (this.lck)
+        {
+            if (!this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
+            {
+              return null;
+            }
+
+            return teamInfo.Demands.ToArray();
+        }
+    }
+
+    /// <inheritdoc />
     public void RemoveTeam(ulong discordUserId)
     {
         lock (this.lck)
@@ -351,6 +451,35 @@ internal class JsonDataService : IDataService, IDisposable
         public TeamAction ToTeamAction() => new((ActionType)this.Type, this.CapDelta, this.Reason);
     }
 
+    private class SerializedDemand
+    {
+      public string Title;
+
+      public string Description;
+
+      public string Deadline;
+
+      public string Progress;
+
+      public string Source;
+
+      public bool Active;
+
+      public bool Success;
+
+      public static SerializedDemand FromDemand(Demand demand) => new() { 
+        Title = demand.Title, 
+        Description = demand.Description, 
+        Deadline = demand.Deadline, 
+        Progress = demand.Progress, 
+        Source = demand.Source,
+        Active = demand.IsActive, 
+        Success = demand.WasSuccessful 
+      };
+
+      public Demand ToDemand() => new(this.Title, this.Description, this.Deadline, this.Progress, this.Source, this.Active, this.Success);
+    }
+
     private class SerializedTeamInfo
     {
         public static SerializedTeamInfo FromTeamInfo(TeamInfo teamInfo) => new()
@@ -360,8 +489,9 @@ internal class JsonDataService : IDataService, IDisposable
             WeeklyAllowance = teamInfo.TotalWeeklyAllowance,
             Carryover = teamInfo.Carryover,
             GridironInvestment = teamInfo.GridironInvestment,
-            Actions = teamInfo.Actions.Select(SerializedTeamAction.FromTeamAction).ToArray(),
-            StatusMessageId = teamInfo.StatusMessageId
+            Actions = teamInfo.Actions?.Select(SerializedTeamAction.FromTeamAction).ToArray() ?? [],
+            StatusMessageId = teamInfo.StatusMessageId,
+            Demands = teamInfo.Demands?.Select(SerializedDemand.FromDemand).ToArray() ?? [],
         };
 
         public string TeamName;
@@ -378,6 +508,8 @@ internal class JsonDataService : IDataService, IDisposable
 
         public ulong StatusMessageId;
 
-        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.GridironInvestment, this.Actions.Select(a => a.ToTeamAction()).ToList(), this.StatusMessageId);
+        public SerializedDemand[] Demands;
+
+        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.GridironInvestment, this.Actions?.Select(a => a.ToTeamAction()).ToList() ?? [], this.StatusMessageId, this.Demands?.Select(d => d.ToDemand()).ToList() ?? []);
     }
 }
