@@ -231,7 +231,7 @@ internal partial class ZFLBot
     {
         var guildId = arg.GuildId.GetValueOrDefault();
 
-        if (amount <= 0)
+        if (amount < 0)
         {
             await arg.RespondAsync("Cute, now how much do you really want to spend?", ephemeral: true);
             return;
