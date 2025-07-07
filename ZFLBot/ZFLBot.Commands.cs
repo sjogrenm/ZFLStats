@@ -460,9 +460,9 @@ internal partial class ZFLBot
             return;
         }
 
-        if (amount <= 0)
+        if (amount < 0 && -amount > teamInfo.CurrentBonusCAP)
         {
-            await arg.RespondAsync("Bonus CAP must be positive", ephemeral: true);
+            await arg.RespondAsync("You cannot revoke more bonus CAP than the team currently has.", ephemeral: true);
             return;
         }
 
@@ -470,13 +470,16 @@ internal partial class ZFLBot
         await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) gave {user.Username} ({user.Id}) ({teamInfo.TeamName}) {amount} bonus CAP: \"{reason}\"");
         teamInfo = this.dataServices[guildId].AddBonusCAP(user.Id, amount, reason);
         await this.UpdateStatusMessage(guildId, user.Id, teamInfo);
-        try
+        if (amount > 0)
         {
-            await user.SendMessageAsync($"Your ZFL team was just granted {amount} bonus CAP!");
-        }
-        catch (Discord.Net.HttpException e) when (e.DiscordCode == DiscordErrorCode.CannotSendMessageToUser)
-        {
-            Log($"Could not send message to user {user.Username} ({user.Id})");
+            try
+            {
+                await user.SendMessageAsync($"Your ZFL team was just granted {amount} bonus CAP!");
+            }
+            catch (Discord.Net.HttpException e) when (e.DiscordCode == DiscordErrorCode.CannotSendMessageToUser)
+            {
+                Log($"Could not send message to user {user.Username} ({user.Id})");
+            }
         }
     }
 
