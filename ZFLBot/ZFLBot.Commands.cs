@@ -120,6 +120,11 @@ internal partial class ZFLBot
                             .WithDescription("Invest CAP with the Gridiron Guild")
                             .WithType(ApplicationCommandOptionType.SubCommand)
                             .AddOption("amount", ApplicationCommandOptionType.Integer, "The amount of CAP", isRequired: true))
+                    .AddOption(
+                        new SlashCommandOptionBuilder()
+                            .WithName("menu")
+                            .WithType(ApplicationCommandOptionType.SubCommand)
+                            .WithDescription("Open coach menu"))
                     .Build(),
                 this.TeamCmd));
     }
@@ -201,8 +206,14 @@ internal partial class ZFLBot
                 break;
             }
 
+            case "menu":
+            {
+                await this.OpenCoachMenu(arg);
+                break;
+            }
+
             default:
-                Log($"Unknown command /cap {cmd.Name}");
+                Log($"Unknown command /team {cmd.Name}");
                 break;
         }
     }
@@ -440,6 +451,10 @@ internal partial class ZFLBot
         /// <inheritdoc />
         public int Compare(TeamInfo? x, TeamInfo? y)
         {
+            if (x.Division == y.Division) {
+                return string.Compare(x.TeamName, y.TeamName, StringComparison.CurrentCultureIgnoreCase);
+            }
+                
             return x.Division - y.Division;
         }
 
