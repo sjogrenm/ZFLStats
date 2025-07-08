@@ -36,13 +36,13 @@ internal interface IDataService
     
     Demand AddDemand(ulong discordUserId, string title, string description, string deadline, string source);
 
-    Demand EditDemand(ulong discordUserId, int demandId, string title, string description, string deadline, string source, string progress);
+    Demand EditDemand(ulong discordUserId, string demandId, string title, string description, string deadline, string source, string progress);
 
-    void RemoveDemand(ulong discordUserId, int demandId);
+    void RemoveDemand(ulong discordUserId, string demandId);
 
-    Demand CloseDemand(ulong discordUserId, int demandId, bool wasSuccessful);
+    Demand CloseDemand(ulong discordUserId, string demandId, bool wasSuccessful);
 
-    Demand OpenDemand(ulong discordUserId, int demandId);
+    Demand OpenDemand(ulong discordUserId, string demandId);
 
     Demand[] GetDemands(ulong discordUserId);
 }
@@ -73,6 +73,7 @@ internal class TeamAction(ActionType type, int delta, string reason)
 }
 
 internal class Demand(
+    string id,
     string title,
     string description,
     string deadline,
@@ -81,10 +82,12 @@ internal class Demand(
     bool active,
     bool success)
 {
-  public static Demand Create(string title, string description, string deadline, string source, string progress, bool active, bool success)
+  public static Demand Create(string id, string title, string description, string deadline, string source, string progress, bool active, bool success)
   {
-    return new Demand(title, description, deadline, source, progress, active, success);
+    return new Demand(id, title, description, deadline, source, progress, active, success);
   }
+
+  public string Id => id;
 
   public string Title => title;
 

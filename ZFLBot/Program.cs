@@ -1,4 +1,6 @@
-﻿namespace ZFLBot;
+﻿using System.Diagnostics;
+
+namespace ZFLBot;
 
 public static class Program
 {
@@ -16,6 +18,7 @@ public static class Program
 
             dataServices.Add(ulong.Parse(guild[0]), new JsonDataService(guild[1]));
         }
+        Trace.Listeners.Add(new TextWriterTraceListener(System.Console.Out));
 
         var bot = new ZFLBot(dataServices);
         await bot.Start(token);

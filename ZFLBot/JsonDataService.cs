@@ -82,7 +82,8 @@ internal class JsonDataService : IDataService, IDisposable
                 return null;
             }
 
-            Demand demand = Demand.Create(title, description, deadline, source, "", true, false);
+            string id = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+            Demand demand = Demand.Create(id, title, description, deadline, source, "", false, false);
             teamInfo.Demands.Add(demand);
             this.flushRequested = true;
             return demand;
@@ -90,7 +91,7 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
-    public Demand EditDemand(ulong discordUserId, int demandId, string title, string description, string deadline, string source, string progress)
+    public Demand EditDemand(ulong discordUserId, string demandId, string title, string description, string deadline, string source, string progress)
     {
         lock (this.lck)
         {
@@ -99,9 +100,9 @@ internal class JsonDataService : IDataService, IDisposable
                 return null;
             }
 
-            Demand oldDemand = teamInfo.Demands[demandId];
-            Demand demand = Demand.Create(title, description, deadline, source, progress, oldDemand.IsActive, oldDemand.WasSuccessful);
-            teamInfo.Demands.RemoveAt(demandId);
+            Demand oldDemand = teamInfo.Demands.Where(d => d.Id.Equals(demandId)).First();
+            Demand demand = Demand.Create(oldDemand.Id, title, description, deadline, source, progress, oldDemand.IsActive, oldDemand.WasSuccessful);
+            teamInfo.Demands.RemoveAt(teamInfo.Demands.IndexOf(oldDemand));
             teamInfo.Demands.Add(demand);
             this.flushRequested = true;
             return demand;
@@ -109,20 +110,21 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
-    public void RemoveDemand(ulong discordUserId, int demandId)
+    public void RemoveDemand(ulong discordUserId, string demandId)
     {
         lock (this.lck)
         {
             if (this.teams.TryGetValue(discordUserId, out TeamInfo teamInfo))
             {
-                teamInfo.Demands.RemoveAt(demandId);
+                Demand oldDemand = teamInfo.Demands.Where(d => d.Id.Equals(demandId)).First();
+                teamInfo.Demands.RemoveAt(teamInfo.Demands.IndexOf(oldDemand));
                 this.flushRequested = true;
             }
         }
     }
 
     /// <inheritdoc />
-    public Demand CloseDemand(ulong discordUserId, int demandId, bool wasSuccessful)
+    public Demand CloseDemand(ulong discordUserId, string demandId, bool wasSuccessful)
     {
         lock (this.lck)
         {
@@ -131,9 +133,9 @@ internal class JsonDataService : IDataService, IDisposable
                 return null;
             }
 
-            Demand oldDemand = teamInfo.Demands[demandId];
-            Demand demand = Demand.Create(oldDemand.Title, oldDemand.Description, oldDemand.Deadline, oldDemand.Source, oldDemand.Progress, false, wasSuccessful);
-            teamInfo.Demands.RemoveAt(demandId);
+            Demand oldDemand = teamInfo.Demands.Where(d => d.Id.Equals(demandId)).First();
+            Demand demand = Demand.Create(oldDemand.Id, oldDemand.Title, oldDemand.Description, oldDemand.Deadline, oldDemand.Source, oldDemand.Progress, false, wasSuccessful);
+            teamInfo.Demands.RemoveAt(teamInfo.Demands.IndexOf(oldDemand));
             teamInfo.Demands.Add(demand);
             this.flushRequested = true;
             return demand;
@@ -141,7 +143,7 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
-    public Demand OpenDemand(ulong discordUserId, int demandId)
+    public Demand OpenDemand(ulong discordUserId, string demandId)
     {
         lock (this.lck)
         {
@@ -150,9 +152,9 @@ internal class JsonDataService : IDataService, IDisposable
                 return null;
             }
 
-            Demand oldDemand = teamInfo.Demands[demandId];
-            Demand demand = Demand.Create(oldDemand.Title, oldDemand.Description, oldDemand.Deadline, oldDemand.Source, oldDemand.Progress, true, oldDemand.WasSuccessful);
-            teamInfo.Demands.RemoveAt(demandId);
+            Demand oldDemand = teamInfo.Demands.Where(d => d.Id.Equals(demandId)).First();
+            Demand demand = Demand.Create(oldDemand.Id, oldDemand.Title, oldDemand.Description, oldDemand.Deadline, oldDemand.Source, oldDemand.Progress, true, oldDemand.WasSuccessful);
+            teamInfo.Demands.RemoveAt(teamInfo.Demands.IndexOf(oldDemand));
             teamInfo.Demands.Add(demand);
             this.flushRequested = true;
             return demand;
@@ -454,6 +456,8 @@ internal class JsonDataService : IDataService, IDisposable
 
     private class SerializedDemand
     {
+        public string Id; 
+
         public string Title;
 
         public string Description;
@@ -470,16 +474,17 @@ internal class JsonDataService : IDataService, IDisposable
 
         public static SerializedDemand FromDemand(Demand demand) => new()
         {
+            Id = demand.Id,
             Title = demand.Title,
             Description = demand.Description,
             Deadline = demand.Deadline,
-            Progress = demand.Progress,
             Source = demand.Source,
+            Progress = demand.Progress,
             Active = demand.IsActive,
             Success = demand.WasSuccessful
         };
 
-        public Demand ToDemand() => new(this.Title, this.Description, this.Deadline, this.Progress, this.Source, this.Active, this.Success);
+        public Demand ToDemand() => new(this.Id, this.Title, this.Description, this.Deadline, this.Source, this.Progress, this.Active, this.Success);
     }
 
     private class SerializedTeamInfo
