@@ -33,7 +33,7 @@ internal partial class ZFLBot {
         SocketUser user = arg.User;
         dataServices[arg.GuildId.Value].TryGetTeam(arg.User.Id, out TeamInfo team);
         if (team == null) {
-          await arg.FollowupAsync("You do not have a team connected to your user");
+          await arg.RespondAsync("You do not have a team connected to your user", ephemeral: true);
         }
         else {
           (string title, MessageComponent component) = GenerateCoachStartMenu(user.GlobalName ?? user.Username, user.Id, team);
