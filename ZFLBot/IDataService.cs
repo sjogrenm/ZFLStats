@@ -127,7 +127,7 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
 
     public int SpentCAP => actions.Where(a => a.CAPDelta < 0).Select(a => -a.CAPDelta).Sum();
 
-    public int CurrentWeeklyCAP => Math.Max(0, weeklyAllowance + actions.Where(a => a.CAPDelta < 0).Select(a => a.CAPDelta).Sum());
+    public int CurrentWeeklyCAP => Math.Max(0, weeklyAllowance + actions.Where(a => a.Type != ActionType.BonusCAP).Select(a => a.CAPDelta).Sum());
 
     public int CurrentBonusCAP => this.CurrentCAP - this.CurrentWeeklyCAP;
 
