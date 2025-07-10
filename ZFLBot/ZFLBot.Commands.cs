@@ -557,12 +557,10 @@ internal partial class ZFLBot
             return;
         }
 
-        await DismissMessage(arg);
-
         var divMessage = div == "all" ? "all divisions" : $"division {divNum}";
         var suffix = div == "all" ? "all" : divNum.ToString();
 
-        await arg.FollowupAsync(
+        await arg.RespondAsync(
             $"Initiate rollover of {divMessage}?",
             components: new ComponentBuilder().WithButton("Confirm", $"admin.rollover.{suffix}").Build(),
             ephemeral: true);
@@ -570,6 +568,8 @@ internal partial class ZFLBot
 
     private async Task CommitRollover(SocketGuildUser admin, SocketMessageComponent component)
     {
+        await DismissMessage(component);
+
         var div = component.Data.CustomId.Split('.')[2];
         int.TryParse(div, out var divNum);
         Debug.Assert(div == "all" || (divNum >= 1 && divNum <= 3));
