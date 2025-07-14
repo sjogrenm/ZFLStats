@@ -292,7 +292,7 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
-    public TeamInfo RolloverTeam(ulong discordUserId, ulong statusMessageId)
+    public TeamInfo RolloverTeam(ulong discordUserId)
     {
         TeamInfo teamInfo;
         lock (this.lck)
@@ -302,7 +302,26 @@ internal class JsonDataService : IDataService, IDisposable
                 return null;
             }
 
-            teamInfo = teamInfo.Rollover(statusMessageId);
+            teamInfo = teamInfo.Rollover();
+            this.teams[discordUserId] = teamInfo;
+            this.flushRequested = true;
+        }
+
+        return teamInfo;
+    }
+
+    /// <inheritdoc />
+    public TeamInfo UpdateStatusMessage(ulong discordUserId, ulong statusMessageId)
+    {
+        TeamInfo teamInfo;
+        lock (this.lck)
+        {
+            if (!this.teams.TryGetValue(discordUserId, out teamInfo))
+            {
+                return null;
+            }
+
+            teamInfo = teamInfo.WithNewStatusMessage(statusMessageId);
             this.teams[discordUserId] = teamInfo;
             this.flushRequested = true;
         }

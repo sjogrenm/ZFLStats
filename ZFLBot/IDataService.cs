@@ -22,7 +22,9 @@ internal interface IDataService
 
     TeamInfo ResetSpentCAP(ulong discordUserId);
 
-    TeamInfo RolloverTeam(ulong discordUserId, ulong statusMessageId);
+    TeamInfo RolloverTeam(ulong discordUserId);
+
+    TeamInfo UpdateStatusMessage(ulong discordUserId, ulong statusMessageId);
 
     ulong AuditChannel { get; set; }
 
@@ -185,7 +187,12 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
         return new(teamName, div, weeklyAllowance, carryover, gridironInvestment - amount, actions, statusMessageId, demands);
     }
 
-    public TeamInfo Rollover(ulong newStatusMessageId)
+    public TeamInfo WithNewStatusMessage(ulong messageId)
+    {
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, actions, messageId, demands);
+    }
+
+    public TeamInfo Rollover()
     {
         // +2, +10, -5, -4
         // -> carryover 2
@@ -195,6 +202,6 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
         var lostCAP = Math.Max(this.TotalWeeklyAllowance, this.SpentCAP);
         var newCarryover = allGainedCAP - lostCAP;
 
-        return new(teamName, div, weeklyAllowance, newCarryover, gridironInvestment, [], newStatusMessageId, demands);
+        return new(teamName, div, weeklyAllowance, newCarryover, gridironInvestment, [], statusMessageId, demands);
     }
 }

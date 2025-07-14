@@ -599,17 +599,11 @@ internal partial class ZFLBot
                 }
             }
 
-            RestUserMessage? statusMessage = null;
+            var newTeamInfo = this.dataServices[guildId].RolloverTeam(discordUserId);
+
             if (statusChannel != null)
             {
-                statusMessage = await statusChannel.SendMessageAsync($"{teamInfo.TeamName} ({user?.Username ?? discordUserId.ToString()}) - rollover...");
-            }
-
-            var newTeamInfo = this.dataServices[guildId].RolloverTeam(discordUserId, statusMessage?.Id ?? 0);
-
-            if (statusMessage != null)
-            {
-                await UpdateStatusMessage(user, discordUserId, statusMessage, newTeamInfo);
+                await this.UpdateStatusMessage(guildId, user, discordUserId, statusChannel, null, newTeamInfo);
             }
         }
     }
@@ -629,13 +623,10 @@ internal partial class ZFLBot
 
         var user = this.GetUser(guildId, discordUserId);
         var message = (RestUserMessage) await statusChannel.GetMessageAsync(teamInfo.StatusMessageId);
-        if (message != null)
-        {
-            await UpdateStatusMessage(user, discordUserId, message, teamInfo);
-        }
+        await this.UpdateStatusMessage(guildId, user, discordUserId, statusChannel, message, teamInfo);
     }
 
-    private static async Task UpdateStatusMessage(IUser? user, ulong discordUserId, RestUserMessage message, TeamInfo teamInfo)
+    private async Task UpdateStatusMessage(ulong guildId, IUser? user, ulong discordUserId, SocketTextChannel statusChannel, RestUserMessage? message, TeamInfo teamInfo)
     {
         var builder = new StringBuilder();
         builder.Append($"{teamInfo.TeamName} ({user?.Username ?? discordUserId.ToString()}) - {teamInfo.CurrentWeeklyCAP}+{teamInfo.CurrentBonusCAP} CAP remaining ({teamInfo.GridironInvestment} invested)");
@@ -651,7 +642,13 @@ internal partial class ZFLBot
             builder.Append($"\n* {action.CAPDelta:+#;-#;0} CAP - {action.Reason}");
         }
 
-        await message.ModifyAsync(m => m.Content = builder.ToString());
+        if (message != null)
+        {
+            await message.DeleteAsync();
+        }
+
+        var newMessage = await statusChannel.SendMessageAsync(builder.ToString());
+        this.dataServices[guildId].UpdateStatusMessage(discordUserId, newMessage.Id);
     }
 
     private static int GetDefaultAllowance(int division) => division switch
