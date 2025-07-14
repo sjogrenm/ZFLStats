@@ -8,9 +8,7 @@ namespace ZFLBot;
 
 internal partial class ZFLBot {
 
-    private async Task CoachMenuHandler(SocketMessageComponent component){
-        (string action, string[] ids) = ParseIdFromAction(component.Data.CustomId);
-        Debug.WriteLine($"Component: {JsonConvert.SerializeObject(component.Data, new JsonSerializerSettings{ReferenceLoopHandling = ReferenceLoopHandling.Ignore})}");
+    private async Task CoachMenuHandler(SocketMessageComponent component, string action, string[] ids){
         var guildId = component.GuildId.Value;
         var admin = component.User;
         switch (action)
@@ -20,9 +18,6 @@ internal partial class ZFLBot {
                 break;
             case "manage-team-demands-coach":
                 await CoachManageTeamDemandMessage(component, ids.FirstOrDefault());
-                break;
-            case "close":
-                await DismissMessage(component);
                 break;
         }
     }
@@ -63,7 +58,7 @@ internal partial class ZFLBot {
         sb.AppendLine($"Bonus CAP: **{team.CurrentBonusCAP}**");
         sb.AppendLine($"Weekly CAP: **{team.CurrentWeeklyCAP}**");
         sb.AppendLine($"Gridiron investment: **{team.GridironInvestment}**");
-        sb.AppendLine($"_");
+        sb.AppendLine($".");
         return (sb.ToString(), new ComponentBuilder()
                 .AddRow(new ActionRowBuilder()
                     .WithButton("View Demands", $"manage-team-demands-coach({id})"))
@@ -81,7 +76,7 @@ internal partial class ZFLBot {
         ComponentBuilder builder = new ComponentBuilder();
         StringBuilder sb = new();
         sb.AppendLine($"# View Demands :clipboard:");
-        if (demands.Length == 0) {
+        if (demands.Where(d => d.IsActive).Count() == 0) {
             sb.AppendLine($"## Currently you have no active demands set for your team :wastebasket:");
         }
         else {
@@ -96,7 +91,7 @@ internal partial class ZFLBot {
                 sb.AppendLine($"```{demand.Description}```");
             }
         }
-        sb.AppendLine($"_");
+        sb.AppendLine($".");
         builder.AddRow(new ActionRowBuilder()
                 .WithButton("Back", $"open-menu-coach({id})", style: ButtonStyle.Secondary)
                 .WithButton("Close", "close", style: ButtonStyle.Danger));

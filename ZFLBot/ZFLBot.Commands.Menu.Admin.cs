@@ -8,9 +8,7 @@ namespace ZFLBot;
 
 internal partial class ZFLBot
 {
-    private async Task AdminMenuHandler(SocketMessageComponent component){
-        (string action, string[] ids) = ParseIdFromAction(component.Data.CustomId);
-        Debug.WriteLine($"Component: {JsonConvert.SerializeObject(component.Data, new JsonSerializerSettings{ReferenceLoopHandling = ReferenceLoopHandling.Ignore})}");
+    private async Task AdminMenuHandler(SocketMessageComponent component, string action, string[] ids){
         var guildId = component.GuildId.Value;
         var admin = component.User;
         switch (action)
@@ -18,8 +16,11 @@ internal partial class ZFLBot
             case "open-menu":
                 await OpenMenuMessage(component);
                 break;
+            case "manage-team-div":
+                await ManageTeamsDivMessage(component);
+                break;
             case "manage-team-selection":
-                await ManageTeamsMessage(component);
+                await ManageTeamsMessage(component, int.Parse(ids.FirstOrDefault()));
                 break;
             case "manage-team-menu":
                 await ManageTeamMenuMessage(component, ids.FirstOrDefault());
@@ -66,18 +67,10 @@ internal partial class ZFLBot
                     await ManageTeamDemandMessage(component, ids.FirstOrDefault());
                     break;
                 }
-            case "new-team":
-                await NewTeamMessage(component);
-                break;
-            case "close":
-                await DismissMessage(component);
-                break;
         }
     }
 
-    private async Task AdminMenuModalHandler(SocketModal modal) {
-        Debug.WriteLine(JsonConvert.SerializeObject(modal.Data));
-        (string action, string[] ids) = ParseIdFromAction(modal.Data.CustomId);
+    private async Task AdminMenuModalHandler(SocketModal modal, string action, string[] ids) {
         var guildId = modal.GuildId.Value;
         var admin = modal.User;
         IReadOnlyCollection<SocketMessageComponentData> components = modal.Data.Components;
@@ -88,9 +81,6 @@ internal partial class ZFLBot
         SocketMessageComponentData progress = components.GetById("demand_progress");
         SocketMessageComponentData success = components.GetById("demand_success");
         switch(action){
-            case "new-team-modal":
-                await ManageTeamsMessage(modal);
-                break;
             case "new-demand-modal":
                 {
                     var userId = Convert.ToUInt64(ids.FirstOrDefault());
@@ -148,7 +138,7 @@ internal partial class ZFLBot
         sb.AppendLine($"  - Manage Demands");
         return (sb.ToString(), new ComponentBuilder()
                 .AddRow(new ActionRowBuilder()
-                    .WithButton("Manage Teams", "manage-team-selection"))
+                    .WithButton("Manage Teams", "manage-team-div"))
                     //.WithButton("Get Status", "get-status")
                     //.WithButton("Roll Round", "roll-round"))
                 .AddRow(new ActionRowBuilder()
@@ -313,7 +303,7 @@ internal partial class ZFLBot
         }
         if (!string.IsNullOrEmpty(id)){
             builder.AddRow(new ActionRowBuilder()
-                    .WithButton("New Demand", $"new-demand({id})", style: ButtonStyle.Success)
+                    .WithButton("New Demand", $"new-demand({id})", style: ButtonStyle.Success, disabled: demands.Length >= 25)
                     .WithButton("Edit Demand", $"edit-demand({id})", style: ButtonStyle.Primary, disabled: !hasDemands)
                     .WithButton("Activate Demand", $"open-demand({id})", style: ButtonStyle.Primary, disabled: !hasDemands || !demands.Any(d => !d.IsActive))
                     .WithButton("Inactivate Demand", $"close-demand({id})", style: ButtonStyle.Primary, disabled: !hasDemands || !demands.Any(d => d.IsActive))
@@ -344,12 +334,30 @@ internal partial class ZFLBot
                     //.WithButton("Manage CAP", "manage-cap")
                     //.WithButton("Manage Coach", "manage-user"))
                 .AddRow(new ActionRowBuilder()
-                    .WithButton("Back", "manage-team-selection", style: ButtonStyle.Secondary)
+                    .WithButton("Back", $"manage-team-selection({team.Division})", style: ButtonStyle.Secondary)
                     .WithButton("Close", "close", style: ButtonStyle.Danger))
                 .Build());
     }
 
-    private async Task ManageTeamsMessage(SocketInteraction component)
+    private async Task ManageTeamsDivMessage(SocketInteraction component)
+    {
+        await DismissMessage(component);
+        StringBuilder sb = new();
+        sb.AppendLine($"# Manage Teams");
+        sb.AppendLine($"Select the div of team that you would like to manage");
+        ComponentBuilder cb = new ComponentBuilder();
+        ActionRowBuilder arb = new ActionRowBuilder();
+        List<KeyValuePair<ulong, TeamInfo>> teams = GetTeamsSortedByDivision(component.GuildId.Value);
+        foreach(var div in teams.Select(kvp => kvp.Value.Division).Distinct()){
+          arb.WithButton($"Div{div}", $"manage-team-selection({div})", style: ButtonStyle.Primary);
+        }
+        cb.AddRow(arb);
+        cb.AddRow(new ActionRowBuilder()
+            .WithButton("Back", "open-menu", style: ButtonStyle.Secondary)
+            .WithButton("Close", "close", style: ButtonStyle.Danger));
+        await component.FollowupAsync(sb.ToString(), ephemeral: true, components: cb.Build());
+    }
+    private async Task ManageTeamsMessage(SocketInteraction component, int div)
     {
         await DismissMessage(component);
         StringBuilder sb = new();
@@ -360,7 +368,7 @@ internal partial class ZFLBot
             .WithCustomId($"manage-team-menu")
             .WithMinValues(1)
             .WithMaxValues(1);
-        List<KeyValuePair<ulong, TeamInfo>> teams = GetTeamsSortedByDivision(component.GuildId.Value);
+        List<KeyValuePair<ulong, TeamInfo>> teams = GetTeamsSortedByDivision(component.GuildId.Value).Where(kvp => kvp.Value.Division == div).ToList();
         foreach(var kvp in teams){
             TeamInfo team = kvp.Value;
             SocketGuildUser user = GetUser(component.GuildId.Value, kvp.Key);
@@ -371,7 +379,7 @@ internal partial class ZFLBot
                     .WithSelectMenu(smBuilder))
                 //.WithButton("New team", "new-team", style: ButtonStyle.Success))
                 .AddRow(new ActionRowBuilder()
-                        .WithButton("Back", "open-menu", style: ButtonStyle.Secondary)
+                        .WithButton("Back", "manage-team-div", style: ButtonStyle.Secondary)
                         .WithButton("Close", "close", style: ButtonStyle.Danger))
                 .Build());
     }
