@@ -40,7 +40,7 @@ internal partial class ZFLBot {
         await DismissMessage(component);
         dataServices[component.GuildId.Value].TryGetTeam(component.User.Id, out TeamInfo team);
         if (team == null) {
-          await component.FollowupAsync("You do not have a team connected to your user");
+          await component.FollowupAsync("You do not have a team connected to your user", ephemeral: true);
         }
         else {
           (string title, MessageComponent mc) = GenerateCoachStartMenu(component.User.GlobalName ?? component.User.Username, component.User.Id, team);
@@ -50,15 +50,17 @@ internal partial class ZFLBot {
 
     private (string title, MessageComponent component) GenerateCoachStartMenu(string username, ulong id, TeamInfo team) {
         StringBuilder sb = new();
-        sb.AppendLine($"# Welcome {username}!");
+        sb.AppendLine($"# Welcome {username}, coach of the {team.TeamName}!");
+        sb.AppendLine($"");
+        sb.AppendLine($"{team.NoteText}");
+        sb.AppendLine($"");
+        sb.Append($"Div: **{team.Division}**");
+        sb.Append($" | CAP (current/bonus/weekly): **{team.CurrentCAP}**/**{team.CurrentBonusCAP}**/**{team.CurrentWeeklyCAP}**");
+//        sb.AppendLine($"Bonus CAP: **{team.CurrentBonusCAP}**");
+ //       sb.AppendLine($"Weekly CAP: **{team.CurrentWeeklyCAP}**");
+        sb.Append($" | Gridiron: **{team.GridironInvestment}**");
+        sb.AppendLine($"");
         sb.AppendLine($"What would you like to do?");
-        sb.AppendLine($"Name: **{team.TeamName}**");
-        sb.AppendLine($"Div: **{team.Division}**");
-        sb.AppendLine($"Current CAP: **{team.CurrentCAP}**");
-        sb.AppendLine($"Bonus CAP: **{team.CurrentBonusCAP}**");
-        sb.AppendLine($"Weekly CAP: **{team.CurrentWeeklyCAP}**");
-        sb.AppendLine($"Gridiron investment: **{team.GridironInvestment}**");
-        sb.AppendLine($".");
         return (sb.ToString(), new ComponentBuilder()
                 .AddRow(new ActionRowBuilder()
                     .WithButton("View Demands", $"manage-team-demands-coach({id})"))

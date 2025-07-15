@@ -407,6 +407,20 @@ internal class JsonDataService : IDataService, IDisposable
         }
     }
 
+    public void SetNoteText(ulong discordUserId, string text) 
+    {
+        TeamInfo teamInfo;
+        lock (this.lck)
+        {
+            if (this.teams.TryGetValue(discordUserId, out teamInfo))
+            {
+              teamInfo = teamInfo.UpdateNote(text);
+              this.teams[discordUserId] = teamInfo;
+              this.flushRequested = true;
+            }
+        }
+    }
+
     private void FlushWorker(object? dummy)
     {
         lock (this.lck)
@@ -518,6 +532,7 @@ internal class JsonDataService : IDataService, IDisposable
             Actions = teamInfo.Actions?.Select(SerializedTeamAction.FromTeamAction).ToArray() ?? [],
             StatusMessageId = teamInfo.StatusMessageId,
             Demands = teamInfo.Demands?.Select(SerializedDemand.FromDemand).ToArray() ?? [],
+            NoteText = teamInfo.NoteText,
         };
 
         public string TeamName;
@@ -536,6 +551,8 @@ internal class JsonDataService : IDataService, IDisposable
 
         public SerializedDemand[] Demands;
 
-        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.GridironInvestment, this.Actions?.Select(a => a.ToTeamAction()).ToList() ?? [], this.StatusMessageId, this.Demands?.Select(d => d.ToDemand()).ToList() ?? []);
+        public string NoteText;
+
+        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.GridironInvestment, this.Actions?.Select(a => a.ToTeamAction()).ToList() ?? [], this.StatusMessageId, this.Demands?.Select(d => d.ToDemand()).ToList() ?? [], this.NoteText);
     }
 }

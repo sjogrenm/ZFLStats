@@ -22,6 +22,9 @@ internal partial class ZFLBot
             case "manage-team-selection":
                 await ManageTeamsMessage(component, int.Parse(ids.FirstOrDefault()));
                 break;
+            case "manage-team-text":
+                await ManageTeamsTextModal(component, ids.FirstOrDefault());
+                break;
             case "manage-team-menu":
                 await ManageTeamMenuMessage(component, ids.FirstOrDefault());
                 break;
@@ -80,6 +83,7 @@ internal partial class ZFLBot
         SocketMessageComponentData source = components.GetById("demand_source");
         SocketMessageComponentData progress = components.GetById("demand_progress");
         SocketMessageComponentData success = components.GetById("demand_success");
+        SocketMessageComponentData noteText = components.GetById("team_text");
         switch(action){
             case "new-demand-modal":
                 {
@@ -97,6 +101,15 @@ internal partial class ZFLBot
                     await this.AuditLog(guildId, $"{admin.Username} ({admin.Id}) edited demand for {user?.Username} ({user?.Id})");
                     dataServices[modal.GuildId.Value].EditDemand(userId, ids.LastOrDefault(), title.Value, description.Value, deadline.Value, source.Value, progress.Value);
                     await ManageTeamDemandMessage(modal, ids.FirstOrDefault());
+                    break;
+                }
+            case "manage-team-text-modal":
+                {
+                    var userId = Convert.ToUInt64(ids.FirstOrDefault());
+                    var user = this.GetUser(guildId, userId);
+                    await this.AuditLog(guildId, $"{admin.Username} ({admin.Id}) modified text for {user?.Username} ({user?.Id})");
+                    dataServices[modal.GuildId.Value].SetNoteText(userId, noteText.Value);
+                    await ManageTeamMenuMessage(modal, ids.FirstOrDefault());
                     break;
                 }
             case "close-demand-modal":
@@ -136,6 +149,7 @@ internal partial class ZFLBot
         sb.AppendLine($"What would you like to do?");
         sb.AppendLine($"- **Manage Teams** lets you:");
         sb.AppendLine($"  - Manage Demands");
+        sb.AppendLine($"  - Update text note");
         return (sb.ToString(), new ComponentBuilder()
                 .AddRow(new ActionRowBuilder()
                     .WithButton("Manage Teams", "manage-team-div"))
@@ -250,6 +264,21 @@ internal partial class ZFLBot
                 .Build());
     }
 
+    private async Task ManageTeamsTextModal(SocketInteraction component, string id)
+    {
+        dataServices[component.GuildId.Value].TryGetTeam(Convert.ToUInt64(id), out TeamInfo? team);
+        await component.RespondWithModalAsync(new ModalBuilder()
+                .WithTitle("Edit Text")
+                .WithCustomId($"manage-team-text-modal({id})")
+                .AddTextInput(new TextInputBuilder()
+                    .WithLabel("Text")
+                    .WithCustomId("team_text")
+                    .WithStyle(TextInputStyle.Paragraph)
+                    .WithValue(team.NoteText)
+                    .WithRequired(true))
+                .Build());
+    }
+
     private async Task CloseDemandModal(SocketInteraction component, string id)
     {
         Demand[] demands = dataServices[component.GuildId.Value].GetDemands(Convert.ToUInt64(id));
@@ -319,18 +348,29 @@ internal partial class ZFLBot
     {
         await DismissMessage(component);
         StringBuilder sb = new();
-        string coachId = ((SocketMessageComponent)component).Data.Values?.FirstOrDefault() ?? id;
+        string coachId = null;
+        if (component is SocketMessageComponent) {
+          coachId = ((SocketMessageComponent)component).Data.Values?.FirstOrDefault() ?? id;
+        }
+        else {
+          coachId = id;
+        }
         dataServices[component.GuildId.Value].TryGetTeam(Convert.ToUInt64(coachId), out TeamInfo? team);
-        sb.AppendLine($"# Manage Team");
-        sb.AppendLine($"Name: **{team.TeamName}**");
-        sb.AppendLine($"Div: **{team.Division}**");
-        sb.AppendLine($"Current CAP: **{team.CurrentCAP}**");
-        sb.AppendLine($"Bonus CAP: **{team.CurrentBonusCAP}**");
-        sb.AppendLine($"Weekly CAP: **{team.CurrentWeeklyCAP}**");
-        sb.AppendLine($"Gridiron investment: **{team.GridironInvestment}**");
+        sb.AppendLine($"# Manage Team - {team.TeamName}");
+        sb.AppendLine($"");
+        sb.AppendLine($"{team.NoteText}");
+        sb.AppendLine($"");
+        sb.Append($"Div: **{team.Division}**");
+        sb.Append($" | CAP (current/bonus/weekly): **{team.CurrentCAP}**/**{team.CurrentBonusCAP}**/**{team.CurrentWeeklyCAP}**");
+//        sb.AppendLine($"Bonus CAP: **{team.CurrentBonusCAP}**");
+ //       sb.AppendLine($"Weekly CAP: **{team.CurrentWeeklyCAP}**");
+        sb.Append($" | Gridiron: **{team.GridironInvestment}**");
+        sb.AppendLine($"");
+        sb.AppendLine($"What would you like to do?");
         await component.FollowupAsync(sb.ToString(), ephemeral: true, components: new ComponentBuilder()
                 .AddRow(new ActionRowBuilder()
-                    .WithButton("Manage Demands", $"manage-team-demands({coachId})"))
+                    .WithButton("Manage Demands", $"manage-team-demands({coachId})")
+                    .WithButton("Update Text Note", $"manage-team-text({coachId})"))
                     //.WithButton("Manage CAP", "manage-cap")
                     //.WithButton("Manage Coach", "manage-user"))
                 .AddRow(new ActionRowBuilder()

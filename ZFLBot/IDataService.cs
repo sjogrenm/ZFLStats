@@ -47,6 +47,8 @@ internal interface IDataService
     Demand OpenDemand(ulong discordUserId, string demandId);
 
     Demand[] GetDemands(ulong discordUserId);
+    
+    void SetNoteText(ulong discordUserId, string text);
 }
 
 internal class DivisionInfo(int div, ulong statusChannelId)
@@ -111,11 +113,11 @@ internal class Tracker(string key, string value){
   public string Value => value;
 }
 
-internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carryover, int gridironInvestment, IReadOnlyList<TeamAction> actions, ulong statusMessageId, List<Demand> demands)
+internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carryover, int gridironInvestment, IReadOnlyList<TeamAction> actions, ulong statusMessageId, List<Demand> demands, string noteText)
 {
     public static TeamInfo Create(string teamName, int div, int weeklyAllowance)
     {
-        return new TeamInfo(teamName, div, weeklyAllowance, 0, 0, [], 0, []);
+        return new TeamInfo(teamName, div, weeklyAllowance, 0, 0, [], 0, [], "");
     }
 
     public string Id => teamName.Replace(' ', '_').Trim().ToLower();
@@ -144,6 +146,13 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
 
     public ulong StatusMessageId => statusMessageId;
 
+    public string NoteText => noteText;
+
+    public TeamInfo UpdateNote(string note)
+    {
+      return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, actions, statusMessageId, demands, note);
+    }
+
     public TeamInfo WithCAPSpent(int spend, string reason)
     {
         if (spend > this.CurrentCAP)
@@ -151,12 +160,12 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
             throw new ArgumentException("Overspend!");
         }
 
-        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, [.. actions, new(ActionType.CAPSpend, -spend, reason)], statusMessageId, demands);
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, [.. actions, new(ActionType.CAPSpend, -spend, reason)], statusMessageId, demands, noteText);
     }
 
     public TeamInfo WithAddedBonusCAP(int amount, string reason)
     {
-        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, [.. actions, new(ActionType.BonusCAP, amount, reason)], statusMessageId, demands);
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, [.. actions, new(ActionType.BonusCAP, amount, reason)], statusMessageId, demands, noteText);
     }
 
     public TeamInfo WithSpentCAPReset()
@@ -164,7 +173,7 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
         var newActions = actions.Where(a => a.CAPDelta > 0).ToList();
         var investmentThisRound = actions.Where(a => a.Type == ActionType.GridironInvestment).Select(a => -a.CAPDelta).Sum();
         Debug.Assert(gridironInvestment >= investmentThisRound);
-        return new TeamInfo(teamName, div, weeklyAllowance, carryover, gridironInvestment - investmentThisRound, newActions, statusMessageId, demands);
+        return new TeamInfo(teamName, div, weeklyAllowance, carryover, gridironInvestment - investmentThisRound, newActions, statusMessageId, demands, noteText);
     }
 
     public TeamInfo WithGridironInvestment(int spend)
@@ -174,7 +183,7 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
             throw new ArgumentException("Overspend!");
         }
 
-        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment + spend, [.. actions, new(ActionType.GridironInvestment, -spend, "Gridiron Investment")], statusMessageId, demands);
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment + spend, [.. actions, new(ActionType.GridironInvestment, -spend, "Gridiron Investment")], statusMessageId, demands, noteText);
     }
 
     public TeamInfo WithGridironCAPSpent(int amount)
@@ -184,12 +193,12 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
             throw new ArgumentException("Overspend!");
         }
 
-        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment - amount, actions, statusMessageId, demands);
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment - amount, actions, statusMessageId, demands, noteText);
     }
 
     public TeamInfo WithNewStatusMessage(ulong messageId)
     {
-        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, actions, messageId, demands);
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, actions, messageId, demands, noteText);
     }
 
     public TeamInfo Rollover()
@@ -202,6 +211,6 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
         var lostCAP = Math.Max(this.TotalWeeklyAllowance, this.SpentCAP);
         var newCarryover = allGainedCAP - lostCAP;
 
-        return new(teamName, div, weeklyAllowance, newCarryover, gridironInvestment, [], statusMessageId, demands);
+        return new(teamName, div, weeklyAllowance, newCarryover, gridironInvestment, [], statusMessageId, demands, noteText);
     }
 }
