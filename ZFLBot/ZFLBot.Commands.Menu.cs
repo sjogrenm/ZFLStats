@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using System.Text.RegularExpressions;
 using Discord.WebSocket;
 using Newtonsoft.Json;
