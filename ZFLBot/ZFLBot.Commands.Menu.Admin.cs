@@ -275,6 +275,7 @@ internal partial class ZFLBot
                     .WithCustomId("team_text")
                     .WithStyle(TextInputStyle.Paragraph)
                     .WithValue(team.NoteText)
+                    .WithMaxLength(1700)
                     .WithRequired(true))
                 .Build());
     }
