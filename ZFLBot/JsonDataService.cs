@@ -553,6 +553,6 @@ internal class JsonDataService : IDataService, IDisposable
 
         public string NoteText;
 
-        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.GridironInvestment, this.Actions?.Select(a => a.ToTeamAction()).ToList() ?? [], this.StatusMessageId, this.Demands?.Select(d => d.ToDemand()).ToList() ?? [], this.NoteText);
+        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.GridironInvestment, this.Actions?.Select(a => a.ToTeamAction()).ToList() ?? [], this.StatusMessageId, this.Demands?.Select(d => d.ToDemand()).ToList() ?? [], this.NoteText != null ? this.NoteText.Substring(0, Math.Min(this.NoteText.Length, 1700)) : "");
     }
 }
