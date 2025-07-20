@@ -144,7 +144,7 @@ internal partial class ZFLBot
     }
 
     private (string title, MessageComponent component) GenerateStartMenu(string username) {
-        StringBuilder sb = new();
+        DiscordStringBuilder sb = new();
         sb.AppendLine($"# Welcome {username}!");
         sb.AppendLine($"What would you like to do?");
         sb.AppendLine($"- **Manage Teams** lets you:");
@@ -177,6 +177,7 @@ internal partial class ZFLBot
                     .WithLabel("Description")
                     .WithCustomId("demand_description")
                     .WithStyle(TextInputStyle.Paragraph)
+                    .WithMaxLength(1500)
                     .WithRequired(true))
                 .AddTextInput(new TextInputBuilder()
                     .WithLabel("Source")
@@ -200,7 +201,7 @@ internal partial class ZFLBot
     private async Task DemandSelectionMessage(SocketInteraction component, string id, DemandOperation operation)
     {
         await DismissMessage(component);
-        StringBuilder sb = new();
+        DiscordStringBuilder sb = new();
         string operationString = Enum.GetName(typeof(DemandOperation), operation);
         sb.AppendLine($"# {operationString} Demand");
         ComponentBuilder builder = new ComponentBuilder();
@@ -302,7 +303,11 @@ internal partial class ZFLBot
         Demand[] demands = dataServices[component.GuildId.Value].GetDemands(Convert.ToUInt64(id));
         bool hasDemands = demands.Any();
         ComponentBuilder builder = new ComponentBuilder();
-        StringBuilder sb = new();
+        DiscordStringBuilder sb = new();
+        DiscordStringBuilder openSb = new(1400);
+        DiscordStringBuilder closedSb = new(300);
+        int unlistedOpen = 0;
+        int unlistedClosed = 0;
         sb.AppendLine($"# Manage Demands");
         sb.AppendLine($"New demands will be created as **inactive** so that the coach will not see it prematurely");
         if (demands.Length == 0) {
@@ -312,24 +317,35 @@ internal partial class ZFLBot
         else {
             sb.AppendLine($"## Active Demands");
             foreach(Demand demand in demands.Where(d => d.IsActive)) {
-                sb.AppendLine($"- **{demand.Title}**");
-                sb.AppendLine($"  - :calendar_spiral: Deadline: {demand.Deadline}");
+                StringBuilder tempSb = new();
+                tempSb.AppendLine($"- **{demand.Title}**");
+                tempSb.AppendLine($"  - :calendar_spiral: Deadline: {demand.Deadline}");
                 if (!string.IsNullOrEmpty(demand.Source))
-                    sb.AppendLine($"  - :satellite: Source: {demand.Source}");
+                    tempSb.AppendLine($"  - :satellite: Source: {demand.Source}");
                 if (!string.IsNullOrEmpty(demand.Progress))
-                    sb.AppendLine($"  - Progress: {demand.Progress}");
-                sb.AppendLine($"```{demand.Description}```");
+                    tempSb.AppendLine($"  - Progress: {demand.Progress}");
+                tempSb.AppendLine($"```{demand.Description}```");
+                if (openSb.CanFit(tempSb.ToString()))
+                  openSb.Append(tempSb.ToString());
+                else unlistedOpen++;
+            }
+            sb.Append(openSb.ToString());
+            if (unlistedOpen > 0) {
+                sb.AppendLine($"# {unlistedOpen} hidden due to message length");
+                sb.AppendLine($"");
             }
             sb.AppendLine($"## Inactive Demands");
             foreach(Demand demand in demands.Where(d => !d.IsActive)) {
-                sb.AppendLine($"- **{demand.Title}** :calendar_spiral: Deadline: {demand.Deadline} :calendar_spiral: Success: {(demand.WasSuccessful ? ":green_circle:" : ":red_circle:")}");
-                //sb.AppendLine($"  - Deadline: {demand.Deadline}");
-                //if (!string.IsNullOrEmpty(demand.Source))
-                    //sb.AppendLine($"  - Source: {demand.Source}");
-                //if (!string.IsNullOrEmpty(demand.Progress))
-                    //sb.AppendLine($"  - Progress: {demand.Progress}");
-                //sb.AppendLine($"```{demand.Description}```");
+                StringBuilder tempSb = new();
+                tempSb.AppendLine($"- **{demand.Title}** :calendar_spiral: Deadline: {demand.Deadline} :calendar_spiral: Success: {(demand.WasSuccessful ? ":green_circle:" : ":red_circle:")}");
+                if (closedSb.CanFit(tempSb.ToString()))
+                    closedSb.Append(tempSb.ToString());
+                else
+                    unlistedClosed++;
             }
+            sb.Append(closedSb.ToString());
+            if (unlistedClosed > 0)
+                sb.AppendLine($"# {unlistedClosed} hidden due to message length");
         }
         if (!string.IsNullOrEmpty(id)){
             builder.AddRow(new ActionRowBuilder()
@@ -348,7 +364,7 @@ internal partial class ZFLBot
     private async Task ManageTeamMenuMessage(SocketInteraction component, string id)
     {
         await DismissMessage(component);
-        StringBuilder sb = new();
+        DiscordStringBuilder sb = new();
         string coachId = null;
         if (component is SocketMessageComponent) {
           coachId = ((SocketMessageComponent)component).Data.Values?.FirstOrDefault() ?? id;
@@ -383,7 +399,7 @@ internal partial class ZFLBot
     private async Task ManageTeamsDivMessage(SocketInteraction component)
     {
         await DismissMessage(component);
-        StringBuilder sb = new();
+        DiscordStringBuilder sb = new();
         sb.AppendLine($"# Manage Teams");
         sb.AppendLine($"Select the div of team that you would like to manage");
         ComponentBuilder cb = new ComponentBuilder();
@@ -401,7 +417,7 @@ internal partial class ZFLBot
     private async Task ManageTeamsMessage(SocketInteraction component, int div)
     {
         await DismissMessage(component);
-        StringBuilder sb = new();
+        DiscordStringBuilder sb = new();
         sb.AppendLine($"# Manage Teams");
         sb.AppendLine($"Select the team that you would like to manage from the list below");
         SelectMenuBuilder smBuilder = new SelectMenuBuilder()
@@ -434,7 +450,7 @@ internal partial class ZFLBot
 
     private static async Task NewTeamMessage(SocketInteraction component)
     {
-        StringBuilder sb = new();
+        DiscordStringBuilder sb = new();
         sb.AppendLine($"# New Team");
         await component.RespondWithModalAsync(new ModalBuilder()
                 .WithTitle(sb.ToString())

@@ -39,4 +39,36 @@ internal partial class ZFLBot {
         (string action, string[] ids) = ParseIdFromAction(modal.Data.CustomId);
         AdminMenuModalHandler(modal, action, ids);
     }
+
+    private class DiscordStringBuilder {
+      private StringBuilder sb;
+      private int maxLength = 2000;
+      public int Length => sb.Length;
+
+      public DiscordStringBuilder() {
+        sb = new StringBuilder();
+      }
+      public DiscordStringBuilder(int maxLength) {
+        sb = new StringBuilder();
+        this.maxLength = Math.Min(this.maxLength, maxLength);
+      }
+
+      public void Append(string text) {
+        if (sb.Length + text.Length <= this.maxLength) {
+          sb.Append(text);
+        }
+      }
+
+      public void AppendLine(string line) {
+        if (sb.Length + line.Length <= this.maxLength) {
+          sb.AppendLine(line);
+        }
+      }
+
+      public bool CanFit(string text) => sb.Length + text.Length <= this.maxLength;
+
+      public override string ToString() {
+        return sb.ToString();
+      }
+    }
 }

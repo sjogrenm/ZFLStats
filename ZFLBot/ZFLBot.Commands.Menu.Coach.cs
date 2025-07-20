@@ -49,7 +49,7 @@ internal partial class ZFLBot {
     }
 
     private (string title, MessageComponent component) GenerateCoachStartMenu(string username, ulong id, TeamInfo team) {
-        StringBuilder sb = new();
+        DiscordStringBuilder sb = new();
         sb.AppendLine($"# Welcome {username}, coach of the {team.TeamName}!");
         sb.AppendLine($"");
         sb.AppendLine($"{team.NoteText}");
@@ -76,7 +76,9 @@ internal partial class ZFLBot {
         Demand[] demands = dataServices[component.GuildId.Value].GetDemands(Convert.ToUInt64(id));
         bool hasDemands = demands.Any();
         ComponentBuilder builder = new ComponentBuilder();
-        StringBuilder sb = new();
+        DiscordStringBuilder sb = new();
+        DiscordStringBuilder openSb = new(1700);
+        int unlistedOpen = 0;
         sb.AppendLine($"# View Demands :clipboard:");
         if (demands.Where(d => d.IsActive).Count() == 0) {
             sb.AppendLine($"## Currently you have no active demands set for your team :wastebasket:");
@@ -84,48 +86,26 @@ internal partial class ZFLBot {
         else {
             sb.AppendLine($"## Active Demands");
             foreach(Demand demand in demands.Where(d => d.IsActive)) {
-                sb.AppendLine($"- **{demand.Title}**");
-                sb.AppendLine($"  - :calendar_spiral: Deadline: {demand.Deadline}");
+                StringBuilder tempSb = new();
+                tempSb.AppendLine($"- **{demand.Title}**");
+                tempSb.AppendLine($"  - :calendar_spiral: Deadline: {demand.Deadline}");
                 if (!string.IsNullOrEmpty(demand.Source))
-                    sb.AppendLine($"  - :satellite: Source: {demand.Source}");
+                    tempSb.AppendLine($"  - :satellite: Source: {demand.Source}");
                 if (!string.IsNullOrEmpty(demand.Progress))
-                    sb.AppendLine($"  - Progress: {demand.Progress}");
-                sb.AppendLine($"```{demand.Description}```");
+                    tempSb.AppendLine($"  - Progress: {demand.Progress}");
+                tempSb.AppendLine($"```{demand.Description}```");
+                if (openSb.CanFit(tempSb.ToString()))
+                  openSb.Append(tempSb.ToString());
+                else unlistedOpen++;
+            }
+            sb.Append(openSb.ToString());
+            if (unlistedOpen > 0) {
+                sb.AppendLine($"# {unlistedOpen} hidden due to message length");
             }
         }
         sb.AppendLine($".");
         builder.AddRow(new ActionRowBuilder()
                 .WithButton("Back", $"open-menu-coach({id})", style: ButtonStyle.Secondary)
-                .WithButton("Close", "close", style: ButtonStyle.Danger));
-        await component.FollowupAsync(sb.ToString(), ephemeral: true, components: builder.Build());
-    }
-
-    private async Task CoachDemandSelectionMessage(SocketInteraction component, string id, DemandOperation operation)
-    {
-        await DismissMessage(component);
-        StringBuilder sb = new();
-        string operationString = Enum.GetName(typeof(DemandOperation), operation);
-        sb.AppendLine($"# {operationString} Demand");
-        ComponentBuilder builder = new ComponentBuilder();
-        SelectMenuBuilder smBuilder = new SelectMenuBuilder()
-            .WithCustomId($"{operationString.ToLower()}-demand-selection({id})")
-            .WithMaxValues(1)
-            .WithMinValues(1);
-        Demand[] demands = dataServices[component.GuildId.Value].GetDemands(Convert.ToUInt64(id));
-        if (operation == DemandOperation.OPEN)
-            demands = demands.Where(d => !d.IsActive).ToArray();
-        if (operation == DemandOperation.CLOSE)
-            demands = demands.Where(d => d.IsActive).ToArray();
-        for(int i = 0; i < demands.Length; i++){
-            smBuilder.AddOption(demands[i].Title, demands[i].Id, $"{(demands[i].IsActive ? "Active" : "Inactive")} - Progress: {demands[i].Progress}");
-            Debug.WriteLine($"Added selection option: {demands[i].Title}, {demands[i].Id}");
-        }
-        if (!string.IsNullOrEmpty(id)){
-            builder.AddRow(new ActionRowBuilder()
-                    .WithSelectMenu(smBuilder));
-        }
-        builder.AddRow(new ActionRowBuilder()
-                .WithButton("Back", $"manage-team-demands({id})", style: ButtonStyle.Secondary)
                 .WithButton("Close", "close", style: ButtonStyle.Danger));
         await component.FollowupAsync(sb.ToString(), ephemeral: true, components: builder.Build());
     }
