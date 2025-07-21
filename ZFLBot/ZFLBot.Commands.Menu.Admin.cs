@@ -372,7 +372,15 @@ internal partial class ZFLBot
         else {
           coachId = id;
         }
+        if (coachId == null) {
+            await component.FollowupAsync("No ID supplied", ephemeral: true);
+            return;
+        }
         dataServices[component.GuildId.Value].TryGetTeam(Convert.ToUInt64(coachId), out TeamInfo? team);
+        if (team == null) {
+            await component.FollowupAsync("No team found", ephemeral: true);
+            return;
+        }
         sb.AppendLine($"# Manage Team - {team.TeamName}");
         sb.AppendLine($"");
         sb.AppendLine($"{team.NoteText}");
@@ -429,16 +437,26 @@ internal partial class ZFLBot
         foreach(var kvp in teams){
             TeamInfo team = kvp.Value;
             SocketGuildUser user = GetUser(component.GuildId.Value, kvp.Key);
-            smBuilder.AddOption(team.TeamName, kvp.Key.ToString(), $"Div {team.Division} - {user.Username}");
+            if (user != null && team != null) {
+                smBuilder.AddOption(team.TeamName, kvp.Key.ToString(), $"Div {team.Division} - {user.Username}");
+            }
         }
-        await component.FollowupAsync(sb.ToString(), ephemeral: true, components: new ComponentBuilder()
-                .AddRow(new ActionRowBuilder()
-                    .WithSelectMenu(smBuilder))
-                //.WithButton("New team", "new-team", style: ButtonStyle.Success))
-                .AddRow(new ActionRowBuilder()
-                        .WithButton("Back", "manage-team-div", style: ButtonStyle.Secondary)
-                        .WithButton("Close", "close", style: ButtonStyle.Danger))
-                .Build());
+        if (smBuilder.Options.Count >= 1 && smBuilder.Options.Count <= 25) {
+            await component.FollowupAsync(sb.ToString(), ephemeral: true, components: new ComponentBuilder()
+                    .AddRow(new ActionRowBuilder()
+                        .WithSelectMenu(smBuilder))
+                    .AddRow(new ActionRowBuilder()
+                            .WithButton("Back", "manage-team-div", style: ButtonStyle.Secondary)
+                            .WithButton("Close", "close", style: ButtonStyle.Danger))
+                    .Build());
+        }
+        else {
+            await component.FollowupAsync(sb.ToString(), ephemeral: true, components: new ComponentBuilder()
+                    .AddRow(new ActionRowBuilder()
+                            .WithButton("Back", "manage-team-div", style: ButtonStyle.Secondary)
+                            .WithButton("Close", "close", style: ButtonStyle.Danger))
+                    .Build());
+        }
     }
 
     private async Task OpenMenuMessage(SocketInteraction component)
