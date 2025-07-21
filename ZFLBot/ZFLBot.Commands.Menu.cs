@@ -24,14 +24,20 @@ internal partial class ZFLBot {
     }
 
     private async Task MenuHandler(SocketMessageComponent component){
-        (string action, string[] ids) = ParseIdFromAction(component.Data.CustomId);
-        Debug.WriteLine($"Component: {JsonConvert.SerializeObject(component.Data, new JsonSerializerSettings{ReferenceLoopHandling = ReferenceLoopHandling.Ignore})}");
-        if (action.Equals("close")) {
-          await DismissMessage(component);
+        try {
+            (string action, string[] ids) = ParseIdFromAction(component.Data.CustomId);
+            Debug.WriteLine($"Component: {JsonConvert.SerializeObject(component.Data, new JsonSerializerSettings{ReferenceLoopHandling = ReferenceLoopHandling.Ignore})}");
+            if (action.Equals("close")) {
+              await DismissMessage(component);
+            }
+            else {
+              await AdminMenuHandler(component, action, ids);
+              await CoachMenuHandler(component, action, ids);
+            }
         }
-        else {
-          AdminMenuHandler(component, action, ids);
-          CoachMenuHandler(component, action, ids);
+        catch (Exception e) {
+            Debug.WriteLine($"Exception hit! Message: {e.Message}");
+            await component.FollowupAsync("Error handling the request. Please try again.", ephemeral: true);
         }
     }
     private async Task MenuModalHandler(SocketModal modal) {
