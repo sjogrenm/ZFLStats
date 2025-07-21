@@ -441,14 +441,22 @@ internal partial class ZFLBot
                 smBuilder.AddOption(team.TeamName, kvp.Key.ToString(), $"Div {team.Division} - {user.Username}");
             }
         }
-        await component.FollowupAsync(sb.ToString(), ephemeral: true, components: new ComponentBuilder()
-                .AddRow(new ActionRowBuilder()
-                    .WithSelectMenu(smBuilder))
-                //.WithButton("New team", "new-team", style: ButtonStyle.Success))
-                .AddRow(new ActionRowBuilder()
-                        .WithButton("Back", "manage-team-div", style: ButtonStyle.Secondary)
-                        .WithButton("Close", "close", style: ButtonStyle.Danger))
-                .Build());
+        if (smBuilder.Options.Count >= 1 && smBuilder.Options.Count <= 25) {
+            await component.FollowupAsync(sb.ToString(), ephemeral: true, components: new ComponentBuilder()
+                    .AddRow(new ActionRowBuilder()
+                        .WithSelectMenu(smBuilder))
+                    .AddRow(new ActionRowBuilder()
+                            .WithButton("Back", "manage-team-div", style: ButtonStyle.Secondary)
+                            .WithButton("Close", "close", style: ButtonStyle.Danger))
+                    .Build());
+        }
+        else {
+            await component.FollowupAsync(sb.ToString(), ephemeral: true, components: new ComponentBuilder()
+                    .AddRow(new ActionRowBuilder()
+                            .WithButton("Back", "manage-team-div", style: ButtonStyle.Secondary)
+                            .WithButton("Close", "close", style: ButtonStyle.Danger))
+                    .Build());
+        }
     }
 
     private async Task OpenMenuMessage(SocketInteraction component)
