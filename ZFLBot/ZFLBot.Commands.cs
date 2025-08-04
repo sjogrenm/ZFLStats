@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using Discord;
 using Discord.Rest;
@@ -127,6 +128,31 @@ internal partial class ZFLBot
                             .WithDescription("Open coach menu"))
                     .Build(),
                 this.TeamCmd));
+        this.commands.Add(
+            "timestamp",
+            (new SlashCommandBuilder()
+                    .WithName("timestamp")
+                    .WithDescription("Generates a discord timestamp")
+                    .AddOption("time", ApplicationCommandOptionType.String, "The (date and) time", isRequired: true)
+                    .Build(),
+                this.TimestampCmd));
+    }
+
+    private static readonly char[] Formats = { 't', 'd', 'f', 'F', 'R' };
+
+    private async Task TimestampCmd(SocketSlashCommand arg)
+    {
+        var timeStr = (string)arg.Data.Options.First(o => o.Name == "time").Value;
+
+        if (!DateTimeOffset.TryParse(timeStr, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var time))
+        {
+            await arg.RespondAsync("Couldn't parse date/time.", ephemeral: true);
+            return;
+        }
+
+        var message = string.Join('\n', Formats.Select(fmt => $"<t:{time.ToUnixTimeSeconds()}:{fmt}> is `<t:{time.ToUnixTimeSeconds()}:{fmt}>`"));
+
+        await arg.RespondAsync(message, ephemeral: true);
     }
 
     private async Task SetupCmd(SocketSlashCommand arg)
