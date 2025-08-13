@@ -29,4 +29,11 @@ public class Replay(FileInfo file, string clientVersion, XmlElement root)
 
         return this.VisitingTeam.Players[id];
     }
+
+    public Team GetTeam(int id) => id switch
+    {
+        0 => this.HomeTeam,
+        1 => this.VisitingTeam,
+        _ => throw new ArgumentOutOfRangeException()
+    };
 }

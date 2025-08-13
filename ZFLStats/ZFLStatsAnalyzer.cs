@@ -472,7 +472,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
         if (!this.stats.TryGetValue(playerId, out var playerStats))
         {
             var p = replay.GetPlayer(playerId);
-            playerStats = new ZFLPlayerStats(playerId, p.Name, p.LobbyId);
+            playerStats = new ZFLPlayerStats(playerId, p.Name, p.LobbyId, replay.GetTeam(p.Team).Name);
             this.stats.Add(playerId, playerStats);
         }
 

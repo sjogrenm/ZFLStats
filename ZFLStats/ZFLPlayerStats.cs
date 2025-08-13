@@ -2,13 +2,15 @@
 
 namespace ZFLStats;
 
-public class ZFLPlayerStats(int id, string name, string? lobbyId)
+public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamName)
 {
     internal int Id => id;
 
     public string Name => name;
 
     public string? LobbyId => lobbyId;
+
+    public string Team => teamName;
 
     public int TouchdownsScored { get; set; }
 
