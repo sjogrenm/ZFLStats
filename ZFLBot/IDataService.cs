@@ -18,7 +18,7 @@ internal interface IDataService
 
     TeamInfo GridironInvestment(ulong discordUserId, int spend);
 
-    TeamInfo UseGridironCAP(ulong discordUserId, int amount);
+    TeamInfo UseGridironCAP(ulong discordUserId, int amount, string reason);
 
     TeamInfo ResetSpentCAP(ulong discordUserId);
 
@@ -64,14 +64,18 @@ internal enum ActionType
 
     BonusCAP,
 
-    GridironInvestment
+    GridironInvestment,
+
+    GridironSpend
 }
 
-internal class TeamAction(ActionType type, int delta, string reason)
+internal class TeamAction(ActionType type, int capDelta, int gridironDelta, string reason)
 {
     public ActionType Type => type;
 
-    public int CAPDelta => delta;
+    public int CAPDelta => capDelta;
+
+    public int GridironDelta => gridironDelta;
 
     public string Reason => reason;
 }
@@ -160,20 +164,21 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
             throw new ArgumentException("Overspend!");
         }
 
-        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, [.. actions, new(ActionType.CAPSpend, -spend, reason)], statusMessageId, demands, noteText);
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, [.. actions, new(ActionType.CAPSpend, -spend, 0, reason)], statusMessageId, demands, noteText);
     }
 
     public TeamInfo WithAddedBonusCAP(int amount, string reason)
     {
-        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, [.. actions, new(ActionType.BonusCAP, amount, reason)], statusMessageId, demands, noteText);
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment, [.. actions, new(ActionType.BonusCAP, amount, 0, reason)], statusMessageId, demands, noteText);
     }
 
     public TeamInfo WithSpentCAPReset()
     {
         var newActions = actions.Where(a => a.Type == ActionType.BonusCAP).ToList();
         var investmentThisRound = actions.Where(a => a.Type == ActionType.GridironInvestment).Select(a => -a.CAPDelta).Sum();
+        var gridironSpentThisRound = actions.Where(a => a.Type == ActionType.GridironSpend).Select(a => -a.GridironDelta).Sum();
         Debug.Assert(gridironInvestment >= investmentThisRound);
-        return new TeamInfo(teamName, div, weeklyAllowance, carryover, gridironInvestment - investmentThisRound, newActions, statusMessageId, demands, noteText);
+        return new TeamInfo(teamName, div, weeklyAllowance, carryover, gridironInvestment - investmentThisRound + gridironSpentThisRound, newActions, statusMessageId, demands, noteText);
     }
 
     public TeamInfo WithGridironInvestment(int spend)
@@ -183,17 +188,17 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
             throw new ArgumentException("Overspend!");
         }
 
-        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment + spend, [.. actions, new(ActionType.GridironInvestment, -spend, "Gridiron Investment")], statusMessageId, demands, noteText);
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment + spend, [.. actions, new(ActionType.GridironInvestment, -spend, spend, "Gridiron Investment")], statusMessageId, demands, noteText);
     }
 
-    public TeamInfo WithGridironCAPSpent(int amount)
+    public TeamInfo WithGridironCAPSpent(int amount, string reason)
     {
         if (amount > gridironInvestment)
         {
             throw new ArgumentException("Overspend!");
         }
 
-        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment - amount, actions, statusMessageId, demands, noteText);
+        return new(teamName, div, weeklyAllowance, carryover, gridironInvestment - amount, [.. actions, new(ActionType.GridironSpend, 0, -amount, reason)], statusMessageId, demands, noteText);
     }
 
     public TeamInfo WithNewStatusMessage(ulong messageId)

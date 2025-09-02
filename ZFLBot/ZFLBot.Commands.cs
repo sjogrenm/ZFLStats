@@ -405,7 +405,7 @@ internal partial class ZFLBot
 
         await arg.RespondAsync($"Spending {amount} Gridiron Guild CAP for {user.Username} ({teamInfo.TeamName})", ephemeral: true);
         await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) spent {amount} of Gridiron Guild CAP for {user.Username} ({user.Id}) ({teamInfo.TeamName}): \"{reason}\"");
-        teamInfo = this.dataServices[guildId].UseGridironCAP(user.Id, amount);
+        teamInfo = this.dataServices[guildId].UseGridironCAP(user.Id, amount, reason);
         await this.UpdateStatusMessage(guildId, user.Id, teamInfo);
     }
 
@@ -665,7 +665,21 @@ internal partial class ZFLBot
 
         foreach (var action in teamInfo.Actions)
         {
-            builder.Append($"\n* {action.CAPDelta:+#;-#;0} CAP - {action.Reason}");
+            builder.Append("\n* ");
+            var sep = string.Empty;
+            if (action.CAPDelta != 0)
+            {
+                sep = ", ";
+                builder.Append($"{action.CAPDelta:+#;-#;0} CAP");
+            }
+
+            if (action.GridironDelta != 0)
+            {
+                builder.Append(sep);
+                builder.Append($"{action.GridironDelta:+#;-#;0} GI");
+            }
+
+            builder.Append($" - {action.Reason}");
         }
 
         if (message != null)

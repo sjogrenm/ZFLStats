@@ -254,7 +254,7 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
-    public TeamInfo UseGridironCAP(ulong discordUserId, int amount)
+    public TeamInfo UseGridironCAP(ulong discordUserId, int amount, string reason)
     {
         TeamInfo teamInfo;
         lock (this.lck)
@@ -264,7 +264,7 @@ internal class JsonDataService : IDataService, IDisposable
                 return null;
             }
 
-            teamInfo = teamInfo.WithGridironCAPSpent(amount);
+            teamInfo = teamInfo.WithGridironCAPSpent(amount, reason);
             this.teams[discordUserId] = teamInfo;
             this.flushRequested = true;
         }
@@ -480,11 +480,24 @@ internal class JsonDataService : IDataService, IDisposable
 
         public int CapDelta;
 
+        public int GridironDelta;
+
         public string Reason;
 
-        public static SerializedTeamAction FromTeamAction(TeamAction action) => new() { Type = (int)action.Type, CapDelta = action.CAPDelta, Reason = action.Reason };
+        public static SerializedTeamAction FromTeamAction(TeamAction action) => new() { Type = (int)action.Type, CapDelta = action.CAPDelta, GridironDelta = action.GridironDelta, Reason = action.Reason };
 
-        public TeamAction ToTeamAction() => new((ActionType)this.Type, this.CapDelta, this.Reason);
+        public TeamAction ToTeamAction()
+        {
+            var type = (ActionType) this.Type;
+            var gridironDelta = this.GridironDelta;
+            // Backwards compatibility nonsense
+            if (type == ActionType.GridironInvestment && gridironDelta == 0)
+            {
+                gridironDelta = -this.CapDelta;
+            }
+
+            return new TeamAction(type, this.CapDelta, gridironDelta, this.Reason);
+        }
     }
 
     private class SerializedDemand
