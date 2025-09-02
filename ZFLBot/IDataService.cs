@@ -170,7 +170,7 @@ internal class TeamInfo(string teamName, int div, int weeklyAllowance, int carry
 
     public TeamInfo WithSpentCAPReset()
     {
-        var newActions = actions.Where(a => a.CAPDelta > 0).ToList();
+        var newActions = actions.Where(a => a.Type == ActionType.BonusCAP).ToList();
         var investmentThisRound = actions.Where(a => a.Type == ActionType.GridironInvestment).Select(a => -a.CAPDelta).Sum();
         Debug.Assert(gridironInvestment >= investmentThisRound);
         return new TeamInfo(teamName, div, weeklyAllowance, carryover, gridironInvestment - investmentThisRound, newActions, statusMessageId, demands, noteText);
