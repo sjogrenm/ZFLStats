@@ -666,6 +666,11 @@ internal partial class ZFLBot
         foreach (var action in teamInfo.Actions)
         {
             builder.Append("\n* ");
+            if (action.UnixTimeStamp > 0)
+            {
+                builder.Append($"<t:{action.UnixTimeStamp}:d>: ");
+            }
+
             var sep = string.Empty;
             if (action.CAPDelta != 0)
             {

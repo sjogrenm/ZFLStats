@@ -71,6 +71,8 @@ internal enum ActionType
 
 internal class TeamAction(ActionType type, int capDelta, int gridironDelta, string reason)
 {
+    public long UnixTimeStamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
     public ActionType Type => type;
 
     public int CAPDelta => capDelta;

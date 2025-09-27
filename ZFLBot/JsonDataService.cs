@@ -484,7 +484,9 @@ internal class JsonDataService : IDataService, IDisposable
 
         public string Reason;
 
-        public static SerializedTeamAction FromTeamAction(TeamAction action) => new() { Type = (int)action.Type, CapDelta = action.CAPDelta, GridironDelta = action.GridironDelta, Reason = action.Reason };
+        public long UnixTimeStamp;
+
+        public static SerializedTeamAction FromTeamAction(TeamAction action) => new() { Type = (int)action.Type, CapDelta = action.CAPDelta, GridironDelta = action.GridironDelta, Reason = action.Reason, UnixTimeStamp = action.UnixTimeStamp };
 
         public TeamAction ToTeamAction()
         {
@@ -496,7 +498,7 @@ internal class JsonDataService : IDataService, IDisposable
                 gridironDelta = -this.CapDelta;
             }
 
-            return new TeamAction(type, this.CapDelta, gridironDelta, this.Reason);
+            return new TeamAction(type, this.CapDelta, gridironDelta, this.Reason) { UnixTimeStamp = this.UnixTimeStamp };
         }
     }
 
