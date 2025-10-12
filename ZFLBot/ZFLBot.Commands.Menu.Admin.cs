@@ -251,6 +251,7 @@ internal partial class ZFLBot
                     .WithLabel("Description")
                     .WithCustomId("demand_description")
                     .WithStyle(TextInputStyle.Paragraph)
+                    .WithMaxLength(1500)
                     .WithValue(demand.Description)
                     .WithRequired(true))
                 .AddTextInput(new TextInputBuilder()
