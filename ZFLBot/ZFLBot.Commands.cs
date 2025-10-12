@@ -540,9 +540,9 @@ internal partial class ZFLBot
             return;
         }
 
-        if (amount > 3)
+        if (amount > 5)
         {
-            await arg.RespondAsync("You can only invest up to 3 CAP per round", ephemeral: true);
+            await arg.RespondAsync("You can only invest up to 5 CAP per round", ephemeral: true);
             return;
         }
 
