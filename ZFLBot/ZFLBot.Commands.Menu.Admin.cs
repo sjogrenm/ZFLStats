@@ -215,7 +215,8 @@ internal partial class ZFLBot
         if (operation == DemandOperation.CLOSE)
             demands = demands.Where(d => d.IsActive).ToArray();
         for(int i = 0; i < demands.Length; i++){
-            smBuilder.AddOption(demands[i].Title, demands[i].Id, $"{(demands[i].IsActive ? "Active" : "Inactive")} - Progress: {demands[i].Progress}");
+            var description = $"{(demands[i].IsActive ? "Active" : "Inactive")} - Progress: {demands[i].Progress}";
+            smBuilder.AddOption(demands[i].Title, demands[i].Id, description.Truncate(100));
             Debug.WriteLine($"Added selection option: {demands[i].Title}, {demands[i].Id}");
         }
         if (!string.IsNullOrEmpty(id)){
@@ -437,8 +438,10 @@ internal partial class ZFLBot
         foreach(var kvp in teams){
             TeamInfo team = kvp.Value;
             SocketGuildUser user = GetUser(component.GuildId.Value, kvp.Key);
-            if (user != null && team != null) {
-                smBuilder.AddOption(team.TeamName, kvp.Key.ToString(), $"Div {team.Division} - {user.Username}");
+            if (user != null && team != null)
+            {
+                var description = $"Div {team.Division} - {user.Username}";
+                smBuilder.AddOption(team.TeamName, kvp.Key.ToString(), description.Truncate(100));
             }
         }
         if (smBuilder.Options.Count >= 1 && smBuilder.Options.Count <= 25) {
