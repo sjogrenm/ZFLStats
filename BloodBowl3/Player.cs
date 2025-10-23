@@ -5,11 +5,14 @@ namespace BloodBowl3;
 [DebuggerDisplay("Player({Id}, {Name})")]
 public class Player(int team, int id, string name, string? lobbyId) : IComparable<Player>
 {
+    private static readonly Dictionary<string, string> StarPlayerNames = new()
+        { ["name_sp_cindy"] = "Cindy Piewhistle" };
+
     public int Team => team;
 
     public int Id => id;
 
-    public string Name => name;
+    public string Name => StarPlayerNames.GetValueOrDefault(name, name);
 
     public string? LobbyId => lobbyId;
 
