@@ -209,9 +209,19 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         if (rollType == RollType.Armor)
                                         {
                                             this.GetStatsFor(playerId).ArmorRollsSustained += 1;
+
+                                            // There's no active player for a fireball
+                                            if (activePlayer >= 0)
+                                            {
+                                                this.GetStatsFor(activePlayer).ArmorRollsInflicted += 1;
+                                            }
                                             if (outcome != 0)
                                             {
                                                 this.GetStatsFor(playerId).ArmorBreaksSustained += 1;
+                                                if (activePlayer >= 0)
+                                                {
+                                                    this.GetStatsFor(activePlayer).ArmorBreaksInflicted += 1;
+                                                }
                                             }
                                         }
                                         else if (rollType == RollType.Bribe)
