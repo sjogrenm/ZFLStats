@@ -396,8 +396,12 @@ internal class ZFLStatsAnalyzer(Replay replay)
                     var playerId = node["PlayerId"]!.InnerText.ParseInt();
                     this.GetStatsFor(playerId).TouchdownsScored += 1;
 
-                    Debug.Assert(replay.GetPlayer(playerId).Team == lastTeamWithPossession);
-                    Debug.Assert(activeGamer == lastTeamWithPossession);
+                    if (lastTeamWithPossession != -1)
+                    {
+                        // will be -1 on a one-turn td
+                        Debug.Assert(replay.GetPlayer(playerId).Team == lastTeamWithPossession);
+                        Debug.Assert(activeGamer == lastTeamWithPossession);
+                    }
                     this.GetTeamStatsFor(activeGamer).TurnsPerTouchdown.Add(touchdownTurnCounter[activeGamer]);
                     Debug.WriteLine($"Team {activeGamer} scored within {touchdownTurnCounter[activeGamer]} turns");
                     touchdownTurnCounter = [1, 1];
