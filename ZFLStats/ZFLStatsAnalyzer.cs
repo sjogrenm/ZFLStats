@@ -316,6 +316,31 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         var outcome = (BlockOutcome)result["Outcome"]!.InnerText.ParseInt();
                                         this.GetStatsFor(attackerId).BlocksInflicted++;
                                         this.GetStatsFor(defenderId).BlocksSustained++;
+
+                                        switch (outcome)
+                                        {
+                                            case BlockOutcome.AttackerDown:
+                                                this.GetStatsFor(attackerId).KnockdownsInflicted++;
+                                                this.GetStatsFor(attackerId).KnockdownsSustained++;
+                                                break;
+                                            case BlockOutcome.BothDown:
+                                                this.GetStatsFor(attackerId).KnockdownsInflicted++;
+                                                this.GetStatsFor(attackerId).KnockdownsSustained++;
+                                                this.GetStatsFor(defenderId).KnockdownsSustained++;
+                                                break;
+                                            case BlockOutcome.BothWrestleDown:
+                                            case BlockOutcome.BothStanding:
+                                            case BlockOutcome.Pushed:
+                                                break;
+                                            case BlockOutcome.DefenderDown:
+                                            case BlockOutcome.DefenderPushedDown:
+                                                this.GetStatsFor(attackerId).KnockdownsInflicted++;
+                                                this.GetStatsFor(defenderId).KnockdownsSustained++;
+                                                break;
+                                            default:
+                                                throw new ArgumentOutOfRangeException();
+                                        }
+
                                         Debug.WriteLine($">> Block by {attackerId} on {defenderId}, outcome {outcome}");
                                     }
                                     break;

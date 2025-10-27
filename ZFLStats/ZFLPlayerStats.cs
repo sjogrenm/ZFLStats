@@ -56,6 +56,10 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamNam
 
     public int ArmorBreaksInflicted { get; set; }
 
+    public int KnockdownsInflicted { get; set; }
+
+    public int KnockdownsSustained { get; set; }
+
     public Dictionary<string, int> AllBlockDice { get; } = new();
 
     public Dictionary<string, int> ChosenBlockDice { get; } = new();
