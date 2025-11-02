@@ -69,7 +69,8 @@ internal partial class ZFLBot
                             .WithDescription("Adds bonus CAP to a team")
                             .AddOption("coach", ApplicationCommandOptionType.User, "The coach", isRequired: true)
                             .AddOption("amount", ApplicationCommandOptionType.Integer, "The amount of CAP", isRequired: true)
-                            .AddOption("reason", ApplicationCommandOptionType.String, "The reason for the addition", isRequired: true))
+                            .AddOption("reason", ApplicationCommandOptionType.String, "The reason for the addition", isRequired: true)
+                            .AddOption("is-deferred", ApplicationCommandOptionType.Boolean, "If the CAP is deferred to the next round", isRequired: false, choices: new ApplicationCommandOptionChoiceProperties[]{ new ApplicationCommandOptionChoiceProperties {Name = "No", Value = "false"}, new ApplicationCommandOptionChoiceProperties {Name = "Yes", Value = "true"} }))
                     .AddOption(
                         new SlashCommandOptionBuilder()
                             .WithName("use-gridiron-cap")
@@ -352,10 +353,12 @@ internal partial class ZFLBot
                 var coachArg = cmd.GetOption("coach")!;
                 var amountArg = cmd.GetOption("amount")!;
                 var reasonArg = cmd.GetOption("reason")!; 
+                var isDeferredArg = cmd.GetOption("is-deferred")!; 
                 var user = (SocketGuildUser)coachArg.Value;
                 var amount = (long)amountArg.Value;
                 var reason = (string) reasonArg.Value;
-                await this.AddBonusCAP(arg, user, (int)amount, reason);
+                var isDeferred = (bool?) isDeferredArg?.Value;
+                await this.AddBonusCAP(arg, user, (int)amount, reason, isDeferred ?? false);
                 break;
             }
 
@@ -491,7 +494,7 @@ internal partial class ZFLBot
         }
     }
 
-    private async Task AddBonusCAP(SocketSlashCommand arg, SocketGuildUser user, int amount, string reason)
+    private async Task AddBonusCAP(SocketSlashCommand arg, SocketGuildUser user, int amount, string reason, bool isDeferred)
     {
         var guildId = arg.GuildId.GetValueOrDefault();
 
@@ -507,11 +510,11 @@ internal partial class ZFLBot
             return;
         }
 
-        await arg.RespondAsync($"Giving {user.Username} ({teamInfo.TeamName}) {amount} bonus CAP", ephemeral: true);
-        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) gave {user.Username} ({user.Id}) ({teamInfo.TeamName}) {amount} bonus CAP: \"{reason}\"");
-        teamInfo = this.dataServices[guildId].AddBonusCAP(user.Id, amount, reason);
+        await arg.RespondAsync($"Giving {user.Username} ({teamInfo.TeamName}) {amount} bonus CAP{(isDeferred ? " next round" : "")}", ephemeral: true);
+        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) gave {user.Username} ({user.Id}) ({teamInfo.TeamName}) {amount} bonus CAP{(isDeferred ? " for next round" : "")}: \"{reason}\"");
+        teamInfo = this.dataServices[guildId].AddBonusCAP(user.Id, amount, reason, isDeferred);
         await this.UpdateStatusMessage(guildId, user.Id, teamInfo);
-        if (amount > 0)
+        if (amount > 0 && !isDeferred)
         {
             try
             {
@@ -685,6 +688,25 @@ internal partial class ZFLBot
             }
 
             builder.Append($" - {action.Reason}");
+        }
+
+        if (teamInfo.DeferredActions.Count() > 0)
+        {
+          builder.Append($"\n### Deferred actions for next round");
+          foreach (var action in teamInfo.DeferredActions)
+          {
+            builder.Append("\n* ");
+            if (action.UnixTimeStamp > 0)
+            {
+              builder.Append($"<t:{action.UnixTimeStamp}:d>: ");
+            }
+
+            if (action.CAPDelta != 0)
+            {
+              builder.Append($"{action.CAPDelta:+#;-#;0} CAP");
+            }
+            builder.Append($" - {action.Reason}");
+          }
         }
 
         if (message != null)
