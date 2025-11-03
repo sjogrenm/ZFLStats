@@ -216,7 +216,7 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
-    public TeamInfo AddBonusCAP(ulong discordUserId, int amount, string reason)
+    public TeamInfo AddBonusCAP(ulong discordUserId, int amount, string reason, bool isDeferred = false)
     {
         TeamInfo teamInfo;
         lock (this.lck)
@@ -226,7 +226,7 @@ internal class JsonDataService : IDataService, IDisposable
                 return null;
             }
 
-            teamInfo = teamInfo.WithAddedBonusCAP(amount, reason);
+            teamInfo = teamInfo.WithAddedBonusCAP(amount, reason, isDeferred);
             this.teams[discordUserId] = teamInfo;
             this.flushRequested = true;
         }
@@ -545,6 +545,7 @@ internal class JsonDataService : IDataService, IDisposable
             Carryover = teamInfo.Carryover,
             GridironInvestment = teamInfo.GridironInvestment,
             Actions = teamInfo.Actions?.Select(SerializedTeamAction.FromTeamAction).ToArray() ?? [],
+            DeferredActions = teamInfo.DeferredActions?.Select(SerializedTeamAction.FromTeamAction).ToArray() ?? [],
             StatusMessageId = teamInfo.StatusMessageId,
             Demands = teamInfo.Demands?.Select(SerializedDemand.FromDemand).ToArray() ?? [],
             NoteText = teamInfo.NoteText,
@@ -561,6 +562,7 @@ internal class JsonDataService : IDataService, IDisposable
         public int GridironInvestment;
 
         public SerializedTeamAction[] Actions;
+        public SerializedTeamAction[] DeferredActions;
 
         public ulong StatusMessageId;
 
@@ -568,6 +570,6 @@ internal class JsonDataService : IDataService, IDisposable
 
         public string NoteText;
 
-        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.GridironInvestment, this.Actions?.Select(a => a.ToTeamAction()).ToList() ?? [], this.StatusMessageId, this.Demands?.Select(d => d.ToDemand()).ToList() ?? [], this.NoteText != null ? this.NoteText.Substring(0, Math.Min(this.NoteText.Length, 1700)) : "");
+        public TeamInfo ToTeamInfo() => new(this.TeamName, this.Division, this.WeeklyAllowance, this.Carryover, this.GridironInvestment, this.Actions?.Select(a => a.ToTeamAction()).ToList() ?? [], this.StatusMessageId, this.Demands?.Select(d => d.ToDemand()).ToList() ?? [], this.NoteText != null ? this.NoteText.Substring(0, Math.Min(this.NoteText.Length, 1700)) : "", this.DeferredActions?.Select(a => a.ToTeamAction()).ToList() ?? []);
     }
 }
