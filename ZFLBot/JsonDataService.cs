@@ -188,6 +188,19 @@ internal class JsonDataService : IDataService, IDisposable
     }
 
     /// <inheritdoc />
+    public void TransferTeam(ulong currentUserId, ulong newUserId)
+    {
+        lock (this.lck)
+        {
+            if (this.teams.Remove(currentUserId, out var teamInfo))
+            {
+                this.teams.Add(newUserId, teamInfo);
+                this.flushRequested = true;
+            }
+        }
+    }
+
+    /// <inheritdoc />
     public bool TryGetTeam(ulong discordUserId, out TeamInfo teamInfo)
     {
         lock (this.lck)

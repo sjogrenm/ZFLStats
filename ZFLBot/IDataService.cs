@@ -10,6 +10,8 @@ internal interface IDataService
 
     void RemoveTeam(ulong discordUserId);
 
+    void TransferTeam(ulong currentUserId, ulong newUserId);
+
     bool TryGetTeam(ulong discordUserId, out TeamInfo teamInfo);
 
     TeamInfo SpendCAP(ulong discordUserId, int spend, string reason);

@@ -64,6 +64,13 @@ internal partial class ZFLBot
                             .AddOption("coach", ApplicationCommandOptionType.User, "The coach of the team", isRequired: true))
                     .AddOption(
                         new SlashCommandOptionBuilder()
+                            .WithName("transfer-team")
+                            .WithType(ApplicationCommandOptionType.SubCommand)
+                            .WithDescription("Transfers a team to another coach")
+                            .AddOption("current-coach", ApplicationCommandOptionType.User, "The current coach", isRequired: true)
+                            .AddOption("new-coach", ApplicationCommandOptionType.User, "The new coach", isRequired: true))
+                    .AddOption(
+                        new SlashCommandOptionBuilder()
                             .WithName("add-bonus-cap")
                             .WithType(ApplicationCommandOptionType.SubCommand)
                             .WithDescription("Adds bonus CAP to a team")
@@ -348,6 +355,16 @@ internal partial class ZFLBot
                 break;
             }
 
+            case "transfer-team":
+            {
+                var currentCoachArg = cmd.GetOption("current-coach");
+                var currentUser = (SocketGuildUser) currentCoachArg.Value;
+                var newCoachArg = cmd.GetOption("new-coach");
+                var newUser = (SocketGuildUser) newCoachArg.Value;
+                await this.TransferTeam(arg, currentUser, newUser);
+                break;
+            }
+
             case "add-bonus-cap":
             {
                 var coachArg = cmd.GetOption("coach")!;
@@ -447,6 +464,28 @@ internal partial class ZFLBot
         await arg.RespondAsync($"Removing {user.Username}'s team {teamInfo.TeamName}", ephemeral: true);
         await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) removed team of {user.Username} ({user.Id}) ({teamInfo.TeamName})");
         this.dataServices[guildId].RemoveTeam(user.Id);
+    }
+
+    private async Task TransferTeam(SocketSlashCommand arg, SocketGuildUser currentUser, SocketGuildUser newUser)
+    {
+        var guildId = arg.GuildId.GetValueOrDefault();
+
+        if (!this.dataServices[guildId].TryGetTeam(currentUser.Id, out var teamInfo))
+        {
+            await arg.RespondAsync($"{currentUser.Username} has no ZFL team", ephemeral: true);
+            return;
+        }
+
+        if (this.dataServices[guildId].TryGetTeam(newUser.Id, out _))
+        {
+            await arg.RespondAsync($"{newUser.Username} already has a ZFL team", ephemeral: true);
+            return;
+        }
+
+        await arg.RespondAsync($"Transferring {currentUser.Username}'s team {teamInfo.TeamName} to {newUser.Username}", ephemeral: true);
+        await this.AuditLog(guildId, $"{arg.User.Username} ({arg.User.Id}) transferred team from {currentUser.Username} ({currentUser.Id}) to {newUser.Username} ({newUser.Id}) ({teamInfo.TeamName})");
+        this.dataServices[guildId].TransferTeam(currentUser.Id, newUser.Id);
+        await this.UpdateStatusMessage(guildId, newUser.Id, teamInfo);
     }
 
     private async Task ListTeams(SocketSlashCommand arg)
