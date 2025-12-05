@@ -669,6 +669,19 @@ internal partial class ZFLBot
 
             var newTeamInfo = this.dataServices[guildId].RolloverTeam(discordUserId);
 
+            var deferredBonusCAP = newTeamInfo.Actions.Select(a => a.CAPDelta).Sum();
+            if (deferredBonusCAP > 0 && user != null)
+            {
+                try
+                {
+                    await user.SendMessageAsync($"Your ZFL team was just granted {deferredBonusCAP} bonus CAP!");
+                }
+                catch (Discord.Net.HttpException e) when (e.DiscordCode == DiscordErrorCode.CannotSendMessageToUser)
+                {
+                    Log($"Could not send message to user {user.Username} ({user.Id})");
+                }
+            }
+
             if (statusChannel != null)
             {
                 await this.UpdateStatusMessage(guildId, user, discordUserId, statusChannel, null, newTeamInfo);
