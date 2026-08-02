@@ -60,6 +60,10 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamNam
 
     public int KnockdownsSustained { get; set; }
 
+    public int KOsInflicted { get; set; }
+
+    public int KOsSustained { get; set; }
+
     public Dictionary<string, int> AllBlockDice { get; } = new();
 
     public Dictionary<string, int> ChosenBlockDice { get; } = new();

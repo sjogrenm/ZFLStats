@@ -301,6 +301,14 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                                     }
                                                 }
                                             }
+                                            else if (situation == PlayerSituation.KOd)
+                                            {
+                                                this.GetStatsFor(playerIdR).KOsSustained += 1;
+                                                if (activePlayer >= 0)
+                                                {
+                                                    this.GetStatsFor(activePlayer).KOsInflicted += 1;
+                                                }
+                                            }
 
                                             if (status == PlayerStatus.Dead)
                                             {
