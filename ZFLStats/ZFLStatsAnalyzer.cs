@@ -234,6 +234,10 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                             Debug.Assert(values.Length == 1);
                                             this.GetTeamStatsFor(activeGamer).ArgueTheCallRolls.Add(values[0]);
                                         }
+                                        else if (rollType == RollType.GFI)
+                                        {
+                                            this.GetStatsFor(activePlayer).Rushes += 1;
+                                        }
 
                                         if (TryGetRollStatType(rollType, out var statType))
                                         {
