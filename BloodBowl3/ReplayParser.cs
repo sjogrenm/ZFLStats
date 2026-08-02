@@ -97,9 +97,9 @@ public static partial class ReplayParser
         doc.LoadXml(xmlContents);
         return doc;
 
-        static string ReplaceDoubleBase64(Match match) => $"<{match.Groups[1].ValueSpan}>{match.Groups[2].Value.FromBase64().FromBase64()}</{match.Groups[1].ValueSpan}>";
+        static string ReplaceDoubleBase64(Match match) => $"<{match.Groups[1].ValueSpan}>{match.Groups[2].Value.FromBase64().FromBase64().Replace("&", "&amp;")}</{match.Groups[1].ValueSpan}>";
 
-        static string ReplaceSingleBase64(Match match) => $"<{match.Groups[1].ValueSpan}>{match.Groups[2].Value.FromBase64()}</{match.Groups[1].ValueSpan}>";
+        static string ReplaceSingleBase64(Match match) => $"<{match.Groups[1].ValueSpan}>{match.Groups[2].Value.FromBase64().Replace("&", "&amp;")}</{match.Groups[1].ValueSpan}>";
     }
 
     public static Replay GetReplay(FileInfo file, XmlElement root)
