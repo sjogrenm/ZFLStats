@@ -391,9 +391,15 @@ internal class ZFLStatsAnalyzer(Replay replay)
                             }
                         }
 
-                        if (stepType == StepType.Catch && passingPlayer >= 0 && catchingPlayer >= 0 && catchSuccess)
+                        if (stepType == StepType.Catch && catchingPlayer >= 0 && catchSuccess)
                         {
-                            this.GetStatsFor(passingPlayer).PassCompletions += 1;
+                            this.GetStatsFor(catchingPlayer).Catches += 1;
+
+                            if (passingPlayer >= 0)
+                            {
+                                this.GetStatsFor(passingPlayer).PassCompletions += 1;
+                            }
+
                             passingPlayer = -1;
                             catchingPlayer = -1;
                         }
