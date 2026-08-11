@@ -68,6 +68,14 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamNam
 
     public int Rushes { get; set; }
 
+    public int QuickPasses { get; set; }
+
+    public int ShortPasses { get; set; }
+
+    public int LongPasses { get; set; }
+
+    public int LongBombPasses { get; set; }
+
     public Dictionary<string, int> AllBlockDice { get; } = new();
 
     public Dictionary<string, int> ChosenBlockDice { get; } = new();

@@ -43,6 +43,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
         int passingPlayer = -1;
         int catchingPlayer = -1;
+        double passingDistance = .0;
 
         int ballCarrier = -1;
 
@@ -125,6 +126,14 @@ internal class ZFLStatsAnalyzer(Replay replay)
                             case StepType.Pass:
                                 passingPlayer = playerId;
                                 catchingPlayer = targetId;
+                                var fromCell = step["CellFrom"];
+                                var fromX = fromCell["X"].InnerText.ParseInt();
+                                var fromY = fromCell["Y"].InnerText.ParseInt();
+                                var toCell = step["CellTo"];
+                                var toX = toCell["X"].InnerText.ParseInt();
+                                var toY = toCell["Y"].InnerText.ParseInt();
+                                passingDistance = Math.Sqrt(Math.Pow(fromX - toX, 2) + Math.Pow(fromY - toY, 2));
+                                Debug.WriteLine($"Pass from {fromX},{fromY} to {toX},{toY}, distance {passingDistance:G4}");
                                 break;
                             case StepType.Catch:
                                 break;
@@ -401,7 +410,26 @@ internal class ZFLStatsAnalyzer(Replay replay)
 
                             if (passingPlayer >= 0)
                             {
+                                var toCell = step["CellTo"];
+                                Debug.WriteLine($"Catch of pass to {toCell["X"].InnerText},{toCell["Y"].InnerText}");
                                 this.GetStatsFor(passingPlayer).PassCompletions += 1;
+
+                                if (passingDistance < 3.3)
+                                {
+                                    this.GetStatsFor(passingPlayer).QuickPasses += 1;
+                                }
+                                else if (passingDistance < 7.0)
+                                {
+                                    this.GetStatsFor(passingPlayer).ShortPasses += 1;
+                                }
+                                else if (passingDistance < 10.2)
+                                {
+                                    this.GetStatsFor(passingPlayer).LongPasses += 1;
+                                }
+                                else
+                                {
+                                    this.GetStatsFor(passingPlayer).LongBombPasses += 1;
+                                }
                             }
 
                             passingPlayer = -1;
