@@ -375,6 +375,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     {
                                         var casualty = (CasualtyOutcome)result["Casualty"]!.InnerText.ParseInt();
                                         Debug.WriteLine($">> Casualty outcome {casualty} (after apo)");
+                                        this.GetStatsFor(targetId).UpdateCasualtySustained(casualty);
                                         if (activePlayer >= 0)
                                         {
                                             this.GetStatsFor(activePlayer).UpdateCasualtyInflicted(casualty);
@@ -385,6 +386,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                     {
                                         var casualty = (CasualtyOutcome)result["Outcome"]!.InnerText.ParseInt();
                                         Debug.WriteLine($">> Casualty outcome {casualty} (no apo)");
+                                        this.GetStatsFor(targetId).UpdateCasualtySustained(casualty);
                                         if (activePlayer >= 0)
                                         {
                                             this.GetStatsFor(activePlayer).UpdateCasualtyInflicted(casualty);
