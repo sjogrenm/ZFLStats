@@ -76,6 +76,43 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamNam
 
     public int LongBombPasses { get; set; }
 
+    public int BadlyHurtInflicted { get; set; }
+
+    public int SeriouslyHurtInflicted { get; set; }
+
+    public int SeriousInjuryInflicted { get; set; }
+
+    public int LastingInjuryInflicted { get; set; }
+
+    internal void UpdateCasualtyInflicted(CasualtyOutcome casualty)
+    {
+        switch (casualty)
+        {
+            case CasualtyOutcome.NoCasualty:
+                break;
+            case CasualtyOutcome.BadlyHurt:
+                this.BadlyHurtInflicted += 1;
+                break;
+            case CasualtyOutcome.SeriouslyHurt:
+                this.SeriouslyHurtInflicted += 1;
+                break;
+            case CasualtyOutcome.SeriousInjury:
+                this.SeriousInjuryInflicted += 1;
+                break;
+            case CasualtyOutcome.LastingInjury:
+            case CasualtyOutcome.SmashedKnee:
+            case CasualtyOutcome.HeadInjury:
+            case CasualtyOutcome.BrokenArm:
+            case CasualtyOutcome.NeckInjury:
+            case CasualtyOutcome.DislocatedShoulder:
+                this.LastingInjuryInflicted += 1;
+                break;
+            case CasualtyOutcome.Dead:
+                // Already tracked in Kills elsewhere
+                break;
+        }
+    }
+
     public Dictionary<string, int> AllBlockDice { get; } = new();
 
     public Dictionary<string, int> ChosenBlockDice { get; } = new();

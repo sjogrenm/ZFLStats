@@ -371,9 +371,25 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         Debug.WriteLine($">> Injury outcome {injury}");
                                     }
                                     break;
+                                case "ResultApothecary":
+                                    {
+                                        var casualty = (CasualtyOutcome)result["Casualty"]!.InnerText.ParseInt();
+                                        Debug.WriteLine($">> Casualty outcome {casualty} (after apo)");
+                                        if (activePlayer >= 0)
+                                        {
+                                            this.GetStatsFor(activePlayer).UpdateCasualtyInflicted(casualty);
+                                        }
+                                    }
+                                    break;
                                 case "ResultCasualtyRoll":
-                                    var casualty = (CasualtyOutcome)result["Outcome"]!.InnerText.ParseInt();
-                                    Debug.WriteLine($">> Casualty outcome {casualty}");
+                                    {
+                                        var casualty = (CasualtyOutcome)result["Outcome"]!.InnerText.ParseInt();
+                                        Debug.WriteLine($">> Casualty outcome {casualty} (no apo)");
+                                        if (activePlayer >= 0)
+                                        {
+                                            this.GetStatsFor(activePlayer).UpdateCasualtyInflicted(casualty);
+                                        }
+                                    }
                                     break;
                                 case "ResultRaisedDead":
                                     var zombieId = result["RaisedPlayerId"]!.InnerText.ParseInt();
