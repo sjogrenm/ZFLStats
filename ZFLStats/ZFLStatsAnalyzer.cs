@@ -44,6 +44,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
         int passingPlayer = -1;
         int catchingPlayer = -1;
         double passingDistance = .0;
+        int interceptingPlayer = -1;
 
         int ballCarrier = -1;
 
@@ -73,6 +74,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                     blockingPlayer = -1;
                     passingPlayer = -1;
                     catchingPlayer = -1;
+                    interceptingPlayer = -1;
                     Debug.WriteLine($"End Turn{(turnover ? " (turnover!)" : string.Empty)}");
                 }
                 else if (node.LocalName == "EventUseSpecialCard")
@@ -85,6 +87,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                         blockingPlayer = -1;
                         passingPlayer = -1;
                         catchingPlayer = -1;
+                        interceptingPlayer = -1;
                         Debug.WriteLine("Wizard used");
                     }
                 }
@@ -105,6 +108,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                 blockingPlayer = -1;
                                 passingPlayer = -1;
                                 catchingPlayer = -1;
+                                interceptingPlayer = -1;
                                 ballCarrier = -1;
                                 Debug.WriteLine("Kickoff, resetting touchdown turn counters");
                                 lastTeamWithPossession = -1;
@@ -170,6 +174,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         blockingPlayer = -1;
                                         passingPlayer = -1;
                                         catchingPlayer = -1;
+                                        interceptingPlayer = -1;
                                     }
                                     break;
                                 case "ResultSkillUsage":
@@ -210,9 +215,22 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                             catchingPlayer = -1;
                                         }
 
-                                        if (!failed && rollType == RollType.Catch)
+                                        if (rollType == RollType.Catch)
                                         {
-                                            catchSuccess = true;
+                                            catchSuccess = !failed;
+                                            if (interceptingPlayer >= 0)
+                                            {
+                                                if (failed)
+                                                {
+                                                    this.GetStatsFor(interceptingPlayer).Interferences += 1;
+                                                }
+                                                else
+                                                {
+                                                    this.GetStatsFor(interceptingPlayer).Interceptions += 1;
+                                                }
+
+                                                interceptingPlayer = -1;
+                                            }
                                         }
 
                                         if (rollType == RollType.Armor)
@@ -246,6 +264,15 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         else if (rollType == RollType.GFI)
                                         {
                                             this.GetStatsFor(activePlayer).Rushes += 1;
+                                        }
+                                        else if (rollType == RollType.Interception)
+                                        {
+                                            if (outcome != 0)
+                                            {
+                                                passingPlayer = -1;
+                                                catchingPlayer = -1;
+                                                interceptingPlayer = playerId;
+                                            }
                                         }
                                         else if (rollType == RollType.PickUp)
                                         {
