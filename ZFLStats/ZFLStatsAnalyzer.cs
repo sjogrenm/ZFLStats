@@ -247,6 +247,13 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         {
                                             this.GetStatsFor(activePlayer).Rushes += 1;
                                         }
+                                        else if (rollType == RollType.PickUp)
+                                        {
+                                            if (outcome != 0)
+                                            {
+                                                this.GetStatsFor(activePlayer).PickUps += 1;
+                                            }
+                                        }
 
                                         if (TryGetRollStatType(rollType, out var statType))
                                         {

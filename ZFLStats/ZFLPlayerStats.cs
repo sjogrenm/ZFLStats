@@ -150,6 +150,8 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamNam
         }
     }
 
+    public int PickUps { get; set; }
+
     public Dictionary<string, int> AllBlockDice { get; } = new();
 
     public Dictionary<string, int> ChosenBlockDice { get; } = new();
