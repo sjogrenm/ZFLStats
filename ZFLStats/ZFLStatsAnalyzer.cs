@@ -69,13 +69,17 @@ internal class ZFLStatsAnalyzer(Replay replay)
                     }
 
                     turnover = node["Reason"]!.InnerText == "2";
+                    if (turnover)
+                    {
+                        this.GetStatsFor(activePlayer).Turnovers += 1;
+                    }
+                    Debug.WriteLine($"End Turn{(turnover ? " (turnover by " + activePlayer + "!)" : string.Empty)}");
                     activeGamer = node["NextPlayingGamer"]?.InnerText.ParseInt() ?? 0;
                     activePlayer = -1;
                     blockingPlayer = -1;
                     passingPlayer = -1;
                     catchingPlayer = -1;
                     interceptingPlayer = -1;
-                    Debug.WriteLine($"End Turn{(turnover ? " (turnover!)" : string.Empty)}");
                 }
                 else if (node.LocalName == "EventUseSpecialCard")
                 {
