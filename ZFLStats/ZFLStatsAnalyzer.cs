@@ -448,6 +448,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         if (activePlayer >= 0)
                                         {
                                             this.GetStatsFor(activePlayer).UpdateCasualtyInflicted(casualty);
+                                            if (foul) this.GetStatsFor(activePlayer).UpdateFoulCasualtyInflicted(casualty);
                                         }
                                     }
                                     break;
