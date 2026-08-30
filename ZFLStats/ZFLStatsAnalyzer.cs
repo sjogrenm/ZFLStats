@@ -128,6 +128,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                 blockingPlayer = -1;
                                 passingPlayer = -1;
                                 catchingPlayer = -1;
+                                foul = false;
                                 break;
                             case StepType.Move:
                                 break;
@@ -362,7 +363,6 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                                 {
                                                     this.GetStatsFor(playerIdR).FoulCasSustained += 1;
                                                     this.GetStatsFor(activePlayer).FoulCasInflicted += 1;
-                                                    foul = false;
                                                 }
                                             }
                                             else if (situation == PlayerSituation.KOd)
@@ -377,7 +377,6 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                                 {
                                                     this.GetStatsFor(playerIdR).FoulKOsSustained += 1;
                                                     this.GetStatsFor(activePlayer).FoulKOsInflicted += 1;
-                                                    foul = false;
                                                 }
                                             }
 
@@ -437,6 +436,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         if (activePlayer >= 0)
                                         {
                                             this.GetStatsFor(activePlayer).UpdateCasualtyInflicted(casualty);
+                                            if (foul) this.GetStatsFor(activePlayer).UpdateFoulCasualtyInflicted(casualty);
                                         }
                                     }
                                     break;
