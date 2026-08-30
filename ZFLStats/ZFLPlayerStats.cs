@@ -158,6 +158,14 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamNam
 
     public int Turnovers { get; set; }
 
+    public int FoulKOsInflicted { get; set; }
+
+    public int FoulKOsSustained { get; set; }
+
+    public int FoulCasInflicted { get; set; }
+
+    public int FoulCasSustained { get; set; }
+
     public Dictionary<string, int> AllBlockDice { get; } = new();
 
     public Dictionary<string, int> ChosenBlockDice { get; } = new();

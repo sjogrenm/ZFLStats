@@ -53,6 +53,8 @@ internal class ZFLStatsAnalyzer(Replay replay)
         var lastTeamWithPossession = -1;
         int[] touchdownTurnCounter = null;
 
+        var foul = false;
+
         foreach (var replayStep in replay.ReplayRoot.SelectNodes("ReplayStep")!.Cast<XmlElement>())
         {
             var turnover = false;
@@ -80,6 +82,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                     passingPlayer = -1;
                     catchingPlayer = -1;
                     interceptingPlayer = -1;
+                    foul = false;
                 }
                 else if (node.LocalName == "EventUseSpecialCard")
                 {
@@ -92,6 +95,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                         passingPlayer = -1;
                         catchingPlayer = -1;
                         interceptingPlayer = -1;
+                        foul = false;
                         Debug.WriteLine("Wizard used");
                     }
                 }
@@ -114,6 +118,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                 catchingPlayer = -1;
                                 interceptingPlayer = -1;
                                 ballCarrier = -1;
+                                foul = false;
                                 Debug.WriteLine("Kickoff, resetting touchdown turn counters");
                                 lastTeamWithPossession = -1;
                                 touchdownTurnCounter = [1, 1];
@@ -147,6 +152,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                 break;
                             case StepType.Foul:
                             case StepType.ChainsawFoul:
+                                foul = true;
                                 this.GetStatsFor(playerId).FoulsInflicted += 1;
                                 this.GetStatsFor(targetId).FoulsSustained += 1;
                                 break;
@@ -351,6 +357,13 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                                         this.GetStatsFor(playerIdR).Deaths += 1;
                                                     }
                                                 }
+
+                                                if (foul)
+                                                {
+                                                    this.GetStatsFor(playerIdR).FoulCasSustained += 1;
+                                                    this.GetStatsFor(activePlayer).FoulCasInflicted += 1;
+                                                    foul = false;
+                                                }
                                             }
                                             else if (situation == PlayerSituation.KOd)
                                             {
@@ -358,6 +371,13 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                                 if (activePlayer >= 0)
                                                 {
                                                     this.GetStatsFor(activePlayer).KOsInflicted += 1;
+                                                }
+
+                                                if (foul)
+                                                {
+                                                    this.GetStatsFor(playerIdR).FoulKOsSustained += 1;
+                                                    this.GetStatsFor(activePlayer).FoulKOsInflicted += 1;
+                                                    foul = false;
                                                 }
                                             }
 
