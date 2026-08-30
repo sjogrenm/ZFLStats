@@ -217,7 +217,7 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamNam
 
     internal Dictionary<RollStatType, Dictionary<int[], int>> Rolls { get; } = new ();
 
-    internal int ExpectedSPP => this.TouchdownsScored * 3 + this.CasInflicted * 2 + this.PassCompletions + (this.Mvp ? 4 : 0);
+    internal int ExpectedSPP => this.TouchdownsScored * 3 + (this.CasInflicted - this.FoulCasInflicted) * 2 + this.PassCompletions + (this.Mvp ? 4 : 0);
 
     public void PrintToConsole(int indent)
     {
