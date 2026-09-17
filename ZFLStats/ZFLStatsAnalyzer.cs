@@ -218,6 +218,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         var failed = result["Outcome"]!.InnerText == "0";
                                         var rollType = (RollType)result["RollType"]!.InnerText.ParseInt();
                                         var outcome = result["Outcome"]?.InnerText.ParseInt() ?? 0;
+                                        var difficulty = result["Difficulty"]?.InnerText.ParseInt() ?? 0;
 
                                         // Pass and catch reroll seem to be handled differently??
                                         if (failed && rollType == RollType.Pass)
@@ -297,6 +298,13 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                         {
                                             var dict = this.GetStatsFor(playerId).Rolls.AddOrGet(statType, () => new Dictionary<int[], int>(RollComparer.Default));
                                             dict.AddOrUpdate(values, 1, r => r + 1);
+
+                                            if (statType == RollStatType.Other)
+                                            {
+                                                Debug.Assert(dice.Length == 1);
+                                                Debug.Assert(dieType == DieType.D6);
+                                                this.GetStatsFor(playerId).UpdateD6Rolls(difficulty);
+                                            }
                                         }
 
                                         Debug.WriteLine($">> {rollType} {dieType} rolls: {string.Join(", ", values)}");

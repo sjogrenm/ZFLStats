@@ -205,6 +205,40 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamNam
         }
     }
 
+    public int Num2pRolled { get; set; }
+
+    public int Num3pRolled { get; set; }
+
+    public int Num4pRolled { get; set; }
+
+    public int Num5pRolled { get; set; }
+
+    public int Num6pRolled { get; set; }
+
+    internal void UpdateD6Rolls(int difficulty)
+    {
+        switch (difficulty)
+        {
+            case 2:
+                this.Num2pRolled += 1;
+                break;
+            case 3:
+                this.Num3pRolled += 1;
+                break;
+            case 4:
+                this.Num4pRolled += 1;
+                break;
+            case 5:
+                this.Num5pRolled += 1;
+                break;
+            case 6:
+                this.Num6pRolled += 1;
+                break;
+            default:
+                break;
+        }
+    }
+
     public Dictionary<string, int> AllBlockDice { get; } = new();
 
     public Dictionary<string, int> ChosenBlockDice { get; } = new();
