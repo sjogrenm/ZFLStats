@@ -215,24 +215,49 @@ public class ZFLPlayerStats(int id, string name, string? lobbyId, string teamNam
 
     public int Num6pRolled { get; set; }
 
-    internal void UpdateD6Rolls(int difficulty)
+    public int Num2pFailed { get; set; }
+
+    public int Num3pFailed { get; set; }
+
+    public int Num4pFailed { get; set; }
+
+    public int Num5pFailed { get; set; }
+
+    public int Num6pFailed { get; set; }
+
+    public int Num2pSucceeded { get; set; }
+
+    public int Num3pSucceeded { get; set; }
+
+    public int Num4pSucceeded { get; set; }
+
+    public int Num5pSucceeded { get; set; }
+
+    public int Num6pSucceeded { get; set; }
+
+    internal void UpdateD6Rolls(int difficulty, bool outcome)
     {
         switch (difficulty)
         {
             case 2:
                 this.Num2pRolled += 1;
+                _ = outcome ? (this.Num2pSucceeded += 1) : (this.Num2pFailed += 1);
                 break;
             case 3:
                 this.Num3pRolled += 1;
+                _ = outcome ? (this.Num3pSucceeded += 1) : (this.Num3pFailed += 1);
                 break;
             case 4:
                 this.Num4pRolled += 1;
+                _ = outcome ? (this.Num4pSucceeded += 1) : (this.Num4pFailed += 1);
                 break;
             case 5:
                 this.Num5pRolled += 1;
+                _ = outcome ? (this.Num5pSucceeded += 1) : (this.Num5pFailed += 1);
                 break;
             case 6:
                 this.Num6pRolled += 1;
+                _ = outcome ? (this.Num6pSucceeded += 1) : (this.Num6pFailed += 1);
                 break;
             default:
                 break;

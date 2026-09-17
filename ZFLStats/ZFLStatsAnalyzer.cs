@@ -303,7 +303,7 @@ internal class ZFLStatsAnalyzer(Replay replay)
                                             {
                                                 Debug.Assert(dice.Length == 1);
                                                 Debug.Assert(dieType == DieType.D6);
-                                                this.GetStatsFor(playerId).UpdateD6Rolls(difficulty);
+                                                this.GetStatsFor(playerId).UpdateD6Rolls(difficulty, outcome != 0);
                                             }
                                         }
 
